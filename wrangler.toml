@@ -12,6 +12,3 @@ migrations_dir = "database/migrations"
 
 [triggers]
 crons = ["*/5 * * * *"]
-
-[vars]
-AUTH_PASSWORD = "changeme"
