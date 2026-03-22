@@ -50,4 +50,3 @@ You can [enable/disable HTML streaming](https://vike.dev/stream) for all or spec
 [Photon](https://photonjs.dev) is a next-generation infrastructure for deploying JavaScript servers.
 
 See [Introducing Photon](https://vike.dev/blog/photon) and [Why Photon](https://photonjs.dev/why) to learn more.
-

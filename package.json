@@ -1,16 +1,21 @@
 {
+  "type": "module",
   "scripts": {
     "dev": "vike dev",
     "build": "vike build",
     "preview": "vike build && vike preview",
     "drizzle:generate": "drizzle-kit generate",
-    "drizzle:migrate": "wrangler d1 migrations apply MY_VIKE_DEMO_DATABASE --local",
+    "drizzle:migrate": "wrangler d1 migrations apply cf-healthcheck-db --local",
     "drizzle:studio": "drizzle-kit studio",
-    "lint": "oxlint --type-aware .",
+    "lint": "vp lint --type-aware .",
     "deploy": "vike build && wrangler deploy",
-    "generate-types": "wrangler types"
+    "generate-types": "wrangler types",
+    "prepare": "vp config"
   },
   "dependencies": {
+    "@orpc/client": "^1.13.9",
+    "@orpc/contract": "^1.13.9",
+    "@orpc/server": "^1.13.9",
     "@photonjs/cloudflare": "^0.1.13",
     "@photonjs/hono": "^0.1.12",
     "dotenv": "^17.3.1",
@@ -20,7 +25,8 @@
     "vike": "^0.4.255",
     "vike-photon": "^0.1.24",
     "vike-vue": "^0.9.11",
-    "vue": "^3.5.30"
+    "vue": "^3.5.30",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -28,12 +34,17 @@
     "@universal-middleware/core": "^0.4.17",
     "@vitejs/plugin-vue": "^6.0.5",
     "daisyui": "^5.5.19",
-    "oxlint": "^1.56.0",
-    "oxlint-tsgolint": "^0.17.0",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite-plus": "latest",
     "wrangler": "^4.74.0"
   },
-  "type": "module"
+  "packageManager": "pnpm@10.32.1",
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+      "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+    }
+  }
 }

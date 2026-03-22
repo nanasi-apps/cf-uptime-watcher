@@ -49,4 +49,3 @@ git commit -am "add cloudflare types"
 ```
 
 See also: https://vike.dev/cloudflare#typescript
-

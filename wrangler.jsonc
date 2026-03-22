@@ -1,14 +1,20 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "my-app",
+  "name": "cf-healthcheck",
   "compatibility_date": "2026-03-12",
   "main": "virtual:photon:cloudflare:server-entry",
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "MY_VIKE_DEMO_DATABASE",
-      "database_id": "my-vike-demo-database",
-      "migrations_dir": "database/migrations"
-    }
-  ]
+      "database_name": "cf-healthcheck-db",
+      "database_id": "cf-healthcheck-db",
+      "migrations_dir": "database/migrations",
+    },
+  ],
+  "triggers": {
+    "crons": ["*/5 * * * *"],
+  },
+  "vars": {
+    "AUTH_PASSWORD": "changeme",
+  },
 }
