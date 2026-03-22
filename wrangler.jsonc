@@ -7,7 +7,7 @@
     {
       "binding": "DB",
       "database_name": "cf-healthcheck-db",
-      "database_id": "cf-healthcheck-db",
+      "database_id": "24ac7bee-1b66-438c-987b-68e1e84bfe19",
       "migrations_dir": "database/migrations",
     },
   ],
