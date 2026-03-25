@@ -258,6 +258,8 @@
 <script lang="ts" setup>
 import type { MonitorWithStatus } from "~/components/types";
 
+definePageMeta({ middleware: "auth" });
+
 interface Channel {
   id: number;
   type: string;

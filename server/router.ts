@@ -16,7 +16,7 @@ type Context = {
 const os = implement(contract).$context<Context>();
 
 function requireAuth(context: Context) {
-  if (!context.authToken || context.authToken !== context.password) {
+  if (!context.password || !context.authToken || context.authToken !== context.password) {
     throw new Error("Unauthorized");
   }
 }
@@ -220,7 +220,15 @@ const testChannel = os.notification.test.handler(async ({ context, input }) => {
 });
 
 const login = os.auth.login.handler(async ({ context, input }) => {
+  if (!context.password) {
+    return { success: false };
+  }
   return { success: input.password === context.password };
+});
+
+const verifyAuth = os.auth.verify.handler(async ({ context }) => {
+  requireAuth(context);
+  return { valid: true as const };
 });
 
 export const router = os.router({
@@ -244,5 +252,6 @@ export const router = os.router({
   },
   auth: {
     login: login,
+    verify: verifyAuth,
   },
 });

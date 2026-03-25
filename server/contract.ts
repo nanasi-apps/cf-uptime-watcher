@@ -328,5 +328,16 @@ export const contract = {
       })
       .input(z.object({ password: z.string() }))
       .output(z.object({ success: z.boolean() })),
+    verify: oc
+      .route(
+        withBearerAuth(
+          "Verify auth token",
+          "Checks if the current Bearer token is valid.",
+          "/auth/verify",
+          "GET",
+          ["Auth"],
+        ),
+      )
+      .output(z.object({ valid: z.literal(true) })),
   },
 };
