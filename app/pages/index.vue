@@ -43,7 +43,12 @@
       </div>
     </div>
 
-    <div v-if="monitors.length === 0" class="text-center py-16">
+    <div v-if="loading" class="text-center py-16">
+      <div class="text-2xl mb-2">ロード中…</div>
+      <p class="text-base-content/50 m-0">読み込み中です。しばらくお待ちください。</p>
+    </div>
+
+    <div v-else-if="monitors.length === 0" class="text-center py-16">
       <div class="text-4xl mb-3 opacity-20">📡</div>
       <p class="text-base-content/50 m-0">モニターがまだありません。</p>
       <p v-if="isAdmin" class="text-base-content/40 text-sm mt-1 mb-0">
@@ -101,8 +106,20 @@ const downCount = computed(
   () => monitors.value.filter((m) => m.lastCheck && !m.lastCheck.isUp).length,
 );
 
+const loading = ref(false);
+
 async function loadMonitors() {
-  monitors.value = await client.monitor.list();
+  loading.value = true;
+  try {
+    monitors.value = await client.monitor.list();
+  } catch (err) {
+    // keep previous monitors on error and log for debugging
+    // you may want to show a user-facing error later
+    // eslint-disable-next-line no-console
+    console.error("failed to load monitors", err);
+  } finally {
+    loading.value = false;
+  }
 }
 
 onMounted(() => {

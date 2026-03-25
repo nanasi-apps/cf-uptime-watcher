@@ -102,6 +102,11 @@ function barTooltip(check: CheckResult) {
   transition:
     box-shadow 0.15s,
     border-color 0.15s;
+  /* make cards stretch to equal height inside the grid */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
 }
 
 .grid-card:hover {
