@@ -1,10 +1,15 @@
 <template>
   <div>
     <header class="settings-header mb-6">
-      <h1 class="text-2xl font-bold m-0">設定</h1>
-      <p class="text-sm text-base-content/50 mt-2 mb-0">
-        モニター、通知チャンネル、Webhook をまとめて管理します。
-      </p>
+      <div class="settings-header-row">
+        <div>
+          <h1 class="text-2xl font-bold m-0">設定</h1>
+          <p class="text-sm text-base-content/50 mt-2 mb-0">
+            モニター、通知チャンネル、Webhook をまとめて管理します。
+          </p>
+        </div>
+        <NuxtLink to="/" class="home-link">ホームへ戻る</NuxtLink>
+      </div>
     </header>
 
     <!-- Tabs -->
@@ -491,6 +496,32 @@ onMounted(async () => {
 .settings-header {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-header-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-link {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  color: var(--color-base-content, gray);
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    opacity 0.15s;
+}
+
+.home-link:hover {
+  background: var(--surface-hover);
+  opacity: 0.9;
 }
 
 .tab-btn {
