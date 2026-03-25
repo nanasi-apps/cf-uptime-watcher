@@ -107,6 +107,8 @@ function barTooltip(check: CheckResult) {
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .grid-card:hover {
@@ -159,6 +161,8 @@ function barTooltip(check: CheckResult) {
   gap: 1px;
   height: 1.25rem;
   align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .bar-sm {
