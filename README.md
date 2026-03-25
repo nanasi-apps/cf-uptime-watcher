@@ -221,7 +221,3 @@ pnpm drizzle:studio
 # Regenerate Cloudflare type bindings
 pnpm generate-types
 ```
-
-## License
-
-MIT
