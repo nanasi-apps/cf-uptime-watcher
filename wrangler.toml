@@ -1,5 +1,5 @@
 name = "cf-uptime-watcher"
-compatibility_date = "2026-03-12"
+compatibility_date = "2026-05-08"
 main = ".output/server/index.mjs"
 preview_urls = false
 workers_dev = false
@@ -19,3 +19,7 @@ directory = ".output/public"
 
 [secrets]
 required = ["AUTH_PASSWORD"]
+
+[observability.logs]
+enabled = true
+invocation_logs = true
