@@ -38,6 +38,7 @@ export interface StatusInformation {
 export interface MonitorWithStatus {
   id: number;
   name: string;
+  displayName: string | null;
   url: string;
   method: string;
   headers: string | null;

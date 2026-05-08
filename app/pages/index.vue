@@ -78,11 +78,21 @@
 <script lang="ts" setup>
 import type { MonitorWithStatus, StatusInformation } from "~/components/types";
 
-const monitors = ref<MonitorWithStatus[]>([]);
-const statusInfo = ref<StatusInformation | null>(null);
+type DashboardData = {
+  monitors: MonitorWithStatus[];
+  statusInfo: StatusInformation;
+  isAdmin: boolean;
+};
+
+const { data: dashboardData, pending: loading } = await useAsyncData("dashboard", () =>
+  $fetch<DashboardData>("/api/dashboard"),
+);
+
+const monitors = ref<MonitorWithStatus[]>(dashboardData.value?.monitors ?? []);
+const statusInfo = ref<StatusInformation | null>(dashboardData.value?.statusInfo ?? null);
 const showCreateModal = ref(false);
 const showImportModal = ref(false);
-const isAdmin = ref(false);
+const isAdmin = ref(dashboardData.value?.isAdmin ?? false);
 
 const { viewMode, init: initViewMode, set: setViewMode } = useViewMode();
 const { t } = useI18n();
@@ -107,28 +117,15 @@ const isAllSystemsUp = computed(
     !statusInfo.value?.activeIncident,
 );
 
-const loading = ref(false);
+async function refreshDashboard() {
+  const data = await $fetch<DashboardData>("/api/dashboard");
+  monitors.value = data.monitors;
+  statusInfo.value = data.statusInfo;
+  isAdmin.value = data.isAdmin || Boolean(localStorage.getItem("auth_token"));
+}
 
 async function loadMonitors() {
-  loading.value = true;
-  try {
-    monitors.value = await client.monitor.list();
-  } catch (err) {
-    // keep previous monitors on error and log for debugging
-    // you may want to show a user-facing error later
-    // eslint-disable-next-line no-console
-    console.error("failed to load monitors", err);
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function loadStatusInfo() {
-  statusInfo.value = await client.statusInfo.get();
-}
-
-async function refreshDashboard() {
-  await Promise.all([loadMonitors(), loadStatusInfo()]);
+  await refreshDashboard();
 }
 
 function handleViewModeChange(value: string | number | boolean) {
@@ -136,9 +133,10 @@ function handleViewModeChange(value: string | number | boolean) {
 }
 
 onMounted(() => {
-  isAdmin.value = !!localStorage.getItem("auth_token");
+  const token = localStorage.getItem("auth_token");
+  if (token) document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
+  isAdmin.value = isAdmin.value || Boolean(token);
   initViewMode();
-  refreshDashboard();
 });
 </script>
 

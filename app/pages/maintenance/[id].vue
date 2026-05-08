@@ -79,9 +79,20 @@ const route = useRoute();
 const { t } = useI18n();
 
 const maintenanceId = computed(() => parseMaintenanceId(route.params.id, route.path));
-const maintenance = ref<MaintenanceEvent | null>(null);
-const monitors = ref<MonitorWithStatus[]>([]);
-const loading = ref(false);
+if (maintenanceId.value === null) {
+  await navigateTo("/");
+}
+
+const { data: maintenanceData, pending: loading } = await useAsyncData(
+  `maintenance-${maintenanceId.value ?? "invalid"}`,
+  () =>
+    $fetch<{ maintenance: MaintenanceEvent | null; monitors: MonitorWithStatus[] }>(
+      `/api/maintenance/${maintenanceId.value}`,
+    ),
+);
+
+const maintenance = computed(() => maintenanceData.value?.maintenance ?? null);
+const monitors = computed(() => maintenanceData.value?.monitors ?? []);
 
 const affectedMonitors = computed(() => {
   const monitorIds = maintenance.value?.monitorIds ?? [];
@@ -131,31 +142,6 @@ function monitorStatus(monitor: MonitorWithStatus) {
   }
   return "pending";
 }
-
-async function loadMaintenance() {
-  if (maintenanceId.value === null) return;
-
-  loading.value = true;
-  try {
-    const [maintenanceEvent, monitorList] = await Promise.all([
-      client.statusInfo.getMaintenance({ id: maintenanceId.value }),
-      client.monitor.list(),
-    ]);
-    maintenance.value = maintenanceEvent;
-    monitors.value = monitorList;
-  } finally {
-    loading.value = false;
-  }
-}
-
-onMounted(async () => {
-  if (maintenanceId.value === null) {
-    await navigateTo("/");
-    return;
-  }
-
-  await loadMaintenance();
-});
 </script>
 
 <style scoped>

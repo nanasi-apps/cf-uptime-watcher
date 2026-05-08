@@ -39,6 +39,7 @@ async function handleLogin() {
     const result = await client.auth.login({ password: password.value });
     if (result.success) {
       localStorage.setItem("auth_token", password.value);
+      document.cookie = `auth_token=${encodeURIComponent(password.value)}; path=/; SameSite=Lax`;
       navigateTo("/");
     } else {
       error.value = t("login.invalidPassword");

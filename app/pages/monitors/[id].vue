@@ -59,8 +59,18 @@ const route = useRoute();
 const monitorId = computed(() => parseMonitorId(route.params.id, route.path));
 const { t } = useI18n();
 
-const monitor = ref<MonitorWithStatus | null>(null);
-const history = ref<CheckResult[]>([]);
+if (monitorId.value === null) {
+  await navigateTo("/");
+}
+
+const { data: monitorData } = await useAsyncData(`monitor-${monitorId.value ?? "invalid"}`, () =>
+  $fetch<{ monitor: MonitorWithStatus | null; history: CheckResult[] }>(
+    `/api/monitors/${monitorId.value}`,
+  ),
+);
+
+const monitor = ref<MonitorWithStatus | null>(monitorData.value?.monitor ?? null);
+const history = ref<CheckResult[]>(monitorData.value?.history ?? []);
 const checking = ref(false);
 const isAdmin = ref(false);
 const showEditModal = ref(false);
@@ -76,16 +86,19 @@ function parseMonitorId(param: unknown, path: string) {
 async function loadMonitor() {
   if (monitorId.value === null) return;
 
-  const data = await client.monitor.get({ id: monitorId.value });
-  if (data) {
-    monitor.value = data;
-  }
+  const data = await $fetch<{ monitor: MonitorWithStatus | null; history: CheckResult[] }>(
+    `/api/monitors/${monitorId.value}`,
+  );
+  monitor.value = data.monitor;
 }
 
 async function loadHistory() {
   if (monitorId.value === null) return;
 
-  history.value = await client.monitor.history({ id: monitorId.value, limit: 200 });
+  const data = await $fetch<{ monitor: MonitorWithStatus | null; history: CheckResult[] }>(
+    `/api/monitors/${monitorId.value}`,
+  );
+  history.value = data.history;
 }
 
 async function checkNow() {
@@ -147,13 +160,9 @@ async function duplicateMonitor() {
 }
 
 onMounted(async () => {
-  if (monitorId.value === null) {
-    await navigateTo("/");
-    return;
-  }
-
-  isAdmin.value = !!localStorage.getItem("auth_token");
-  await Promise.all([loadMonitor(), loadHistory()]);
+  const token = localStorage.getItem("auth_token");
+  if (token) document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
+  isAdmin.value = Boolean(token);
 });
 </script>
 

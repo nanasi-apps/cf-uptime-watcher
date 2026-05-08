@@ -549,11 +549,21 @@ interface Channel {
   createdAt: string;
 }
 
+type SettingsData = {
+  monitors: MonitorWithStatus[];
+  statusInfo: StatusInformation;
+  channels: Channel[];
+};
+
+const { data: settingsData } = await useAsyncData("settings-data", () =>
+  $fetch<SettingsData>("/api/settings").catch(() => null),
+);
+
 const activeTab = ref<"monitors" | "channels" | "bulk" | "maintenance" | "incidents">("monitors");
 const { t } = useI18n();
-const monitors = ref<MonitorWithStatus[]>([]);
-const statusInfo = ref<StatusInformation | null>(null);
-const channels = ref<Channel[]>([]);
+const monitors = ref<MonitorWithStatus[]>(settingsData.value?.monitors ?? []);
+const statusInfo = ref<StatusInformation | null>(settingsData.value?.statusInfo ?? null);
+const channels = ref<Channel[]>(settingsData.value?.channels ?? []);
 const monitorPaneMode = ref<MonitorPaneMode>("idle");
 const maintenancePaneMode = ref<MaintenancePaneMode>("idle");
 const incidentPaneMode = ref<IncidentPaneMode>("idle");
@@ -1060,6 +1070,7 @@ onMounted(async () => {
     navigateTo("/login");
     return;
   }
+  document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
   await Promise.all([loadMonitors(), loadChannels(), loadStatusInfo()]);
 });
 </script>

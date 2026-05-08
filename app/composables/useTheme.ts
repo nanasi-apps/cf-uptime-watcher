@@ -18,7 +18,13 @@ function applyTheme(t: Theme) {
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("data-theme", t);
     document.documentElement.classList.toggle("dark", t === "dark");
+    document.documentElement.style.colorScheme = t;
   }
+}
+
+function persistTheme(t: Theme) {
+  localStorage.setItem(STORAGE_KEY, t);
+  document.cookie = `${STORAGE_KEY}=${t}; path=/; SameSite=Lax`;
 }
 
 export function useTheme() {
@@ -33,13 +39,13 @@ export function useTheme() {
 
   function toggle() {
     theme.value = theme.value === "light" ? "dark" : "light";
-    localStorage.setItem(STORAGE_KEY, theme.value);
+    persistTheme(theme.value);
     applyTheme(theme.value);
   }
 
   function set(t: Theme) {
     theme.value = t;
-    localStorage.setItem(STORAGE_KEY, t);
+    persistTheme(t);
     applyTheme(t);
   }
 

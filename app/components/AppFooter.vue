@@ -64,6 +64,7 @@ onMounted(() => {
 
 function logout() {
   localStorage.removeItem("auth_token");
+  document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
   token.value = null;
   navigateTo("/login");
 }

@@ -49,6 +49,7 @@ export default Object.assign(
             name: "description",
             content: "Uptime monitoring powered by Cloudflare Workers",
           },
+          { name: "color-scheme", content: "light dark" },
         ],
         link: [
           { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -59,6 +60,11 @@ export default Object.assign(
           },
         ],
         script: [
+          {
+            innerHTML:
+              "(()=>{try{const k='cf-hc-theme';const d=document.documentElement;const s=localStorage.getItem(k);const m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;const t=s==='light'||s==='dark'?s:m?'dark':'light';d.setAttribute('data-theme',t);d.classList.toggle('dark',t==='dark');d.style.colorScheme=t;}catch(e){}})();",
+            tagPosition: "head",
+          },
           {
             src: "https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js",
             "data-name": "BMC-Widget",
