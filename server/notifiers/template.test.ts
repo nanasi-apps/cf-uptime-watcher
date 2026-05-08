@@ -20,6 +20,7 @@ const basePayload: NotifyPayload = {
     statusCode: 500,
     responseTime: 123,
     isUp: false,
+    status: "down",
     errorMessage: "Server error",
   },
   previouslyUp: true,
@@ -28,7 +29,13 @@ const basePayload: NotifyPayload = {
 test("renders RECOVERED for an up notification with the default template", () => {
   const rendered = renderTemplate(DEFAULT_TEMPLATE, {
     ...basePayload,
-    result: { ...basePayload.result, isUp: true, statusCode: 200, errorMessage: null },
+    result: {
+      ...basePayload.result,
+      isUp: true,
+      status: "up",
+      statusCode: 200,
+      errorMessage: null,
+    },
     previouslyUp: false,
   });
 
@@ -45,7 +52,7 @@ describe("resolveTemplate", () => {
     expect(
       resolveTemplate(
         { template: "shared", upTemplate: "up" },
-        { ...basePayload, result: { ...basePayload.result, isUp: true } },
+        { ...basePayload, result: { ...basePayload.result, isUp: true, status: "up" } },
       ),
     ).toBe("up");
   });

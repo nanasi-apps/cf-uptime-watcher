@@ -79,6 +79,7 @@
   --app-primary-text: #ffffff;
   --status-up: var(--el-color-success);
   --status-down: var(--el-color-danger);
+  --status-maintenance: var(--el-color-warning);
   --status-warn: var(--el-color-warning);
   --status-pending: var(--el-text-color-placeholder);
   --status-up-bg: var(--el-color-success-light-9);

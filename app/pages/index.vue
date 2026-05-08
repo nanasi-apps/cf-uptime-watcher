@@ -1,5 +1,12 @@
 <template>
-  <StatsBar :total="monitors.length" :up="upCount" :down="downCount" />
+  <StatsBar
+    :down="downCount"
+    :maintenance="maintenanceCount"
+    :status-info="statusInfo"
+    :total="monitors.length"
+    :up="upCount"
+  />
+  <StatusInfoPanel :show-planned-maintenance="isAllSystemsUp" :status-info="statusInfo" />
 
   <div class="dashboard-toolbar">
     <div v-if="isAdmin" class="dashboard-actions">
@@ -69,9 +76,10 @@
 </template>
 
 <script lang="ts" setup>
-import type { MonitorWithStatus } from "~/components/types";
+import type { MonitorWithStatus, StatusInformation } from "~/components/types";
 
 const monitors = ref<MonitorWithStatus[]>([]);
+const statusInfo = ref<StatusInformation | null>(null);
 const showCreateModal = ref(false);
 const showImportModal = ref(false);
 const isAdmin = ref(false);
@@ -83,9 +91,20 @@ const viewModeOptions = computed(() => [
   { label: t("dashboard.viewGrid"), value: "grid" },
 ]);
 
-const upCount = computed(() => monitors.value.filter((m) => m.lastCheck?.isUp).length);
+const upCount = computed(() => monitors.value.filter((m) => m.lastCheck?.status === "up").length);
 const downCount = computed(
-  () => monitors.value.filter((m) => m.lastCheck && !m.lastCheck.isUp).length,
+  () => monitors.value.filter((m) => m.lastCheck?.status === "down").length,
+);
+const maintenanceCount = computed(
+  () => monitors.value.filter((m) => m.lastCheck?.status === "maintenance").length,
+);
+const isAllSystemsUp = computed(
+  () =>
+    monitors.value.length > 0 &&
+    downCount.value === 0 &&
+    maintenanceCount.value === 0 &&
+    !statusInfo.value?.activeMaintenance &&
+    !statusInfo.value?.activeIncident,
 );
 
 const loading = ref(false);
@@ -104,6 +123,14 @@ async function loadMonitors() {
   }
 }
 
+async function loadStatusInfo() {
+  statusInfo.value = await client.statusInfo.get();
+}
+
+async function refreshDashboard() {
+  await Promise.all([loadMonitors(), loadStatusInfo()]);
+}
+
 function handleViewModeChange(value: string | number | boolean) {
   if (value === "list" || value === "grid") setViewMode(value);
 }
@@ -111,7 +138,7 @@ function handleViewModeChange(value: string | number | boolean) {
 onMounted(() => {
   isAdmin.value = !!localStorage.getItem("auth_token");
   initViewMode();
-  loadMonitors();
+  refreshDashboard();
 });
 </script>
 

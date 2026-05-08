@@ -9,7 +9,7 @@
           v-for="(check, i) in barData"
           :key="i"
           class="history-bar-lg"
-          :class="check.isUp ? 'bar-up' : 'bar-down'"
+          :class="barClass(check)"
           :title="tooltip(check)"
         ></div>
         <template v-if="history.length === 0">
@@ -24,11 +24,11 @@
       <div class="event-list">
         <div v-for="check in history" :key="check.id" class="event-row">
           <div class="event-main">
-            <span class="event-dot" :class="check.isUp ? 'dot-up' : 'dot-down'"></span>
+            <span class="event-dot" :class="dotClass(check)"></span>
             <div class="event-body">
               <div class="event-meta">
                 <span class="event-status">
-                  {{ check.isUp ? t("status.up") : t("status.down") }}
+                  {{ statusText(check) }}
                 </span>
                 <span v-if="check.statusCode" class="event-code">
                   HTTP {{ check.statusCode }}
@@ -84,11 +84,26 @@ function formatDate(iso: string) {
 
 function tooltip(check: CheckResult) {
   const time = formatDate(check.checkedAt);
-  const status = check.isUp ? t("status.up") : t("status.down");
+  const status = statusText(check);
   const rt = check.responseTime
     ? t("monitor.responseTimeSuffix", { time: check.responseTime })
     : "";
   return t("monitor.tooltip", { time, status, responseTime: rt });
+}
+
+function statusText(check: CheckResult) {
+  if (check.status === "maintenance") return t("status.maintenance");
+  return check.isUp ? t("status.up") : t("status.down");
+}
+
+function barClass(check: CheckResult) {
+  if (check.status === "maintenance") return "bar-maintenance";
+  return check.isUp ? "bar-up" : "bar-down";
+}
+
+function dotClass(check: CheckResult) {
+  if (check.status === "maintenance") return "dot-maintenance";
+  return check.isUp ? "dot-up" : "dot-down";
 }
 
 function isExpanded(id: number) {
@@ -143,6 +158,9 @@ function shouldShowToggle(errorMessage: string | null) {
 }
 .bar-down {
   background-color: var(--status-down);
+}
+.bar-maintenance {
+  background-color: var(--status-maintenance);
 }
 .bar-empty {
   background-color: var(--bar-empty);
@@ -252,5 +270,8 @@ function shouldShowToggle(errorMessage: string | null) {
 }
 .dot-down {
   background-color: var(--status-down);
+}
+.dot-maintenance {
+  background-color: var(--status-maintenance);
 }
 </style>

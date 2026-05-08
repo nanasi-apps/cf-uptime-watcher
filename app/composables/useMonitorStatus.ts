@@ -7,9 +7,10 @@ export function useMonitorStatus(
   uptimePercent: MaybeRefOrGetter<number | null>,
 ) {
   const { t } = useI18n();
-  const status = computed<"up" | "down" | "pending">(() => {
+  const status = computed<"up" | "down" | "maintenance" | "pending">(() => {
     const check = toValue(lastCheck);
     if (!check) return "pending";
+    if (check.status === "maintenance") return "maintenance";
     return check.isUp ? "up" : "down";
   });
 
@@ -17,15 +18,17 @@ export function useMonitorStatus(
     const map: Record<string, string> = {
       up: "status-dot-up",
       down: "status-dot-down",
+      maintenance: "status-dot-maintenance",
       pending: "status-dot-pending",
     };
     return map[status.value];
   });
 
-  const statusVariant = computed<"success" | "error" | "ghost">(() => {
-    const map: Record<string, "success" | "error" | "ghost"> = {
+  const statusVariant = computed<"success" | "warning" | "error" | "ghost">(() => {
+    const map: Record<string, "success" | "warning" | "error" | "ghost"> = {
       up: "success",
       down: "error",
+      maintenance: "warning",
       pending: "ghost",
     };
     return map[status.value] ?? "ghost";
@@ -34,12 +37,14 @@ export function useMonitorStatus(
   const statusText = computed(() => {
     if (status.value === "up") return t("status.up");
     if (status.value === "down") return t("status.down");
+    if (status.value === "maintenance") return t("status.maintenance");
     return t("status.pending");
   });
 
   const statusLabelKey = computed(() => {
     if (status.value === "up") return "status.up";
     if (status.value === "down") return "status.down";
+    if (status.value === "maintenance") return "status.maintenance";
     return "status.pending";
   });
 

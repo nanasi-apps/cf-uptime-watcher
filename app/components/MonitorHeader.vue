@@ -75,15 +75,17 @@ const dotClass = computed(() => {
   const map: Record<string, string> = {
     up: "dot-up",
     down: "dot-down",
+    maintenance: "dot-maintenance",
     pending: "dot-pending",
   };
   return map[status.value];
 });
 
 const tagType = computed(() => {
-  const map: Record<string, "success" | "danger" | "info"> = {
+  const map: Record<string, "success" | "warning" | "danger" | "info"> = {
     up: "success",
     down: "danger",
+    maintenance: "warning",
     pending: "info",
   };
   return map[status.value];
@@ -156,6 +158,9 @@ function formatResponseTime(value: number) {
 .dot-down {
   background-color: var(--status-down);
   animation: pulse-slow 2s ease-in-out infinite;
+}
+.dot-maintenance {
+  background-color: var(--status-maintenance);
 }
 .dot-pending {
   background-color: var(--color-base-content, gray);

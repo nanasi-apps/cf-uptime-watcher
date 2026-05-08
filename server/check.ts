@@ -4,6 +4,7 @@ export interface CheckResultData {
   statusCode: number | null;
   responseTime: number | null;
   isUp: boolean;
+  status: "up" | "down" | "maintenance";
   errorMessage: string | null;
 }
 
@@ -61,6 +62,7 @@ export async function performCheck(monitor: Monitor): Promise<CheckResultData> {
       statusCode: response.status,
       responseTime,
       isUp,
+      status: isUp ? "up" : "down",
       errorMessage: isUp ? null : await buildHttpErrorMessage(response, monitor.expectedStatus),
     };
   } catch (error) {
@@ -72,6 +74,7 @@ export async function performCheck(monitor: Monitor): Promise<CheckResultData> {
       statusCode: null,
       responseTime,
       isUp: false,
+      status: "down",
       errorMessage: isTimeout ? `Timeout after ${monitor.timeout}s` : message,
     };
   }

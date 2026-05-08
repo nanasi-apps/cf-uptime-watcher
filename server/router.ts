@@ -3,6 +3,7 @@ import type { dbD1 } from "../database/drizzle/db";
 import * as mnQueries from "../database/drizzle/queries/monitor-notifications";
 import * as queries from "../database/drizzle/queries/monitors";
 import * as channelQueries from "../database/drizzle/queries/notification-channels";
+import * as statusQueries from "../database/drizzle/queries/status-events";
 import { performCheck } from "./check";
 import { contract } from "./contract";
 import { buildNotifiersFromChannels, sendNotifications } from "./notifiers";
@@ -48,6 +49,41 @@ async function getMonitorWithChannelIds(db: ReturnType<typeof dbD1>, monitorId: 
   return rows.map((r) => r.channelId);
 }
 
+function isUpStatus(check: { isUp: boolean; status?: string }) {
+  return check.status ? check.status === "up" : check.isUp;
+}
+
+function isMaintenanceStatus(check: { status?: string }) {
+  return check.status === "maintenance";
+}
+
+function buildMaintenanceCheck() {
+  return {
+    statusCode: null,
+    responseTime: null,
+    isUp: true,
+    status: "maintenance" as const,
+    errorMessage: null,
+  };
+}
+
+async function getStatusInfo(context: Context) {
+  const [maintenanceEvents, activeMaintenance, incidents, activeIncident] = await Promise.all([
+    statusQueries.getMaintenanceEvents(context.db),
+    statusQueries.getActiveMaintenanceEvent(context.db),
+    statusQueries.getIncidents(context.db),
+    statusQueries.getActiveIncident(context.db),
+  ]);
+  const hasDownMonitor = await queries.hasCurrentDownMonitor(context.db);
+  return {
+    maintenanceEvents,
+    activeMaintenance: activeMaintenance ?? null,
+    incidents,
+    activeIncident: activeIncident ?? null,
+    canCreateIncident: hasDownMonitor && !activeMaintenance,
+  };
+}
+
 // Public: read-only endpoints
 const listMonitors = os.monitor.list.handler(async ({ context }) => {
   const hasAuth = isAuthenticated(context);
@@ -56,9 +92,12 @@ const listMonitors = os.monitor.list.handler(async ({ context }) => {
     monitors.map(async (m) => {
       const lastCheck = (await queries.getLatestCheckResult(context.db, m.id)) ?? null;
       const history = await queries.getCheckResults(context.db, m.id, 100);
-      const upChecks = history.filter((c) => c.isUp).length;
+      const uptimeHistory = history.filter((c) => !isMaintenanceStatus(c));
+      const upChecks = uptimeHistory.filter((c) => isUpStatus(c)).length;
       const uptimePercent =
-        history.length > 0 ? Math.round((upChecks / history.length) * 10000) / 100 : null;
+        uptimeHistory.length > 0
+          ? Math.round((upChecks / uptimeHistory.length) * 10000) / 100
+          : null;
       const channelIds = await getMonitorWithChannelIds(context.db, m.id);
       const recentChecks = [...history].reverse().slice(-90);
       return maskMonitorData({ ...m, lastCheck, uptimePercent, channelIds, recentChecks }, hasAuth);
@@ -73,9 +112,10 @@ const getMonitor = os.monitor.get.handler(async ({ context, input }) => {
   if (!monitor) return null;
   const lastCheck = (await queries.getLatestCheckResult(context.db, monitor.id)) ?? null;
   const history = await queries.getCheckResults(context.db, monitor.id, 100);
-  const upChecks = history.filter((c) => c.isUp).length;
+  const uptimeHistory = history.filter((c) => !isMaintenanceStatus(c));
+  const upChecks = uptimeHistory.filter((c) => isUpStatus(c)).length;
   const uptimePercent =
-    history.length > 0 ? Math.round((upChecks / history.length) * 10000) / 100 : null;
+    uptimeHistory.length > 0 ? Math.round((upChecks / uptimeHistory.length) * 10000) / 100 : null;
   const channelIds = await getMonitorWithChannelIds(context.db, monitor.id);
   return maskMonitorData({ ...monitor, lastCheck, uptimePercent, channelIds }, hasAuth) as any;
 });
@@ -118,7 +158,8 @@ const checkNow = os.monitor.checkNow.handler(async ({ context, input }) => {
   requireAuth(context);
   const monitor = await queries.getMonitorById(context.db, input.id);
   if (!monitor) throw new Error("Monitor not found");
-  const result = await performCheck(monitor);
+  const activeMaintenance = await statusQueries.getActiveMaintenanceEvent(context.db);
+  const result = activeMaintenance ? buildMaintenanceCheck() : await performCheck(monitor);
   await queries.insertCheckResult(context.db, {
     monitorId: monitor.id,
     ...result,
@@ -181,6 +222,90 @@ const importMonitors = os.monitor.import.handler(async ({ context, input }) => {
   }
 
   return { imported, skipped, errors, details };
+});
+
+const getStatusInformation = os.statusInfo.get.handler(async ({ context }) => {
+  return getStatusInfo(context);
+});
+
+const getMaintenance = os.statusInfo.getMaintenance.handler(async ({ context, input }) => {
+  return (await statusQueries.getMaintenanceEvent(context.db, input.id)) ?? null;
+});
+
+const createMaintenance = os.statusInfo.createMaintenance.handler(async ({ context, input }) => {
+  requireAuth(context);
+  const startAt = new Date(input.startAt);
+  const endAt = new Date(input.endAt);
+  if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) {
+    throw new ORPCError("BAD_REQUEST", { message: "Maintenance endAt must be after startAt" });
+  }
+
+  const result = await statusQueries.insertMaintenanceEvent(context.db, {
+    title: input.title,
+    message: input.message ?? null,
+    startAt: startAt.toISOString(),
+    endAt: endAt.toISOString(),
+  });
+  return result[0]!;
+});
+
+const updateMaintenance = os.statusInfo.updateMaintenance.handler(async ({ context, input }) => {
+  requireAuth(context);
+  const startAt = new Date(input.startAt);
+  const endAt = new Date(input.endAt);
+  if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) {
+    throw new ORPCError("BAD_REQUEST", { message: "Maintenance endAt must be after startAt" });
+  }
+
+  await statusQueries.updateMaintenanceEvent(context.db, input.id, {
+    title: input.title,
+    message: input.message ?? null,
+    startAt: startAt.toISOString(),
+    endAt: endAt.toISOString(),
+  });
+  return { status: "OK" as const };
+});
+
+const deleteMaintenance = os.statusInfo.deleteMaintenance.handler(async ({ context, input }) => {
+  requireAuth(context);
+  await statusQueries.deleteMaintenanceEvent(context.db, input.id);
+  return { status: "OK" as const };
+});
+
+const createIncident = os.statusInfo.createIncident.handler(async ({ context, input }) => {
+  requireAuth(context);
+  const activeMaintenance = await statusQueries.getActiveMaintenanceEvent(context.db);
+  if (activeMaintenance) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Incident cannot be created during maintenance",
+    });
+  }
+  if (!(await queries.hasCurrentDownMonitor(context.db))) {
+    throw new ORPCError("BAD_REQUEST", { message: "Incident requires a currently down monitor" });
+  }
+
+  const result = await statusQueries.insertIncident(context.db, {
+    title: input.title,
+    message: input.message ?? null,
+    resolvedAt: null,
+  });
+  return result[0]!;
+});
+
+const updateIncident = os.statusInfo.updateIncident.handler(async ({ context, input }) => {
+  requireAuth(context);
+  await statusQueries.updateIncident(context.db, input.id, {
+    title: input.title,
+    message: input.message ?? null,
+    resolvedAt: input.resolved ? new Date().toISOString() : null,
+  });
+  return { status: "OK" as const };
+});
+
+const resolveIncident = os.statusInfo.resolveIncident.handler(async ({ context, input }) => {
+  requireAuth(context);
+  await statusQueries.resolveIncident(context.db, input.id);
+  return { status: "OK" as const };
 });
 
 // Notification channels (all protected)
@@ -265,6 +390,7 @@ const testChannel = os.notification.test.handler(async ({ context, input }) => {
       statusCode: null,
       responseTime: null,
       isUp: false,
+      status: "down",
       errorMessage: "This is a test notification",
     },
     previouslyUp: true,
@@ -295,6 +421,16 @@ export const router = os.router({
     checkNow: checkNow,
     import: importMonitors,
     setChannels: setMonitorChannels,
+  },
+  statusInfo: {
+    get: getStatusInformation,
+    getMaintenance: getMaintenance,
+    createMaintenance: createMaintenance,
+    updateMaintenance: updateMaintenance,
+    deleteMaintenance: deleteMaintenance,
+    createIncident: createIncident,
+    updateIncident: updateIncident,
+    resolveIncident: resolveIncident,
   },
   notification: {
     list: listChannels,

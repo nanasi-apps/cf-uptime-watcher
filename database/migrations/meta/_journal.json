@@ -57,6 +57,13 @@
       "when": 1778175600000,
       "tag": "0007_clean_discord_sentinel_values",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1778265994053,
+      "tag": "0008_even_the_initiative",
+      "breakpoints": true
     }
   ]
 }

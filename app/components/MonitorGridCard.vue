@@ -20,7 +20,7 @@
             v-for="(bar, i) in bars"
             :key="i"
             class="bar-sm"
-            :class="bar.isUp ? 'bar-up' : 'bar-down'"
+            :class="barClass(bar)"
             :title="barTooltip(bar)"
           ></div>
         </template>
@@ -57,6 +57,7 @@ const dotClass = computed(() => {
   const map: Record<string, string> = {
     up: "dot-up",
     down: "dot-down",
+    maintenance: "dot-maintenance",
     pending: "dot-pending",
   };
   return map[status.value];
@@ -66,15 +67,17 @@ const statusText = computed(() => {
   const map: Record<string, string> = {
     up: "status.up",
     down: "status.down",
+    maintenance: "status.maintenance",
     pending: "status.pending",
   };
   return t(map[status.value]);
 });
 
 const tagType = computed(() => {
-  const map: Record<string, "success" | "danger" | "info"> = {
+  const map: Record<string, "success" | "warning" | "danger" | "info"> = {
     up: "success",
     down: "danger",
+    maintenance: "warning",
     pending: "info",
   };
   return map[status.value];
@@ -87,11 +90,21 @@ const bars = computed(() => {
 
 function barTooltip(check: CheckResult) {
   const time = new Date(check.checkedAt).toLocaleString();
-  const s = check.isUp ? t("status.up") : t("status.down");
+  const s =
+    check.status === "maintenance"
+      ? t("status.maintenance")
+      : check.isUp
+        ? t("status.up")
+        : t("status.down");
   const rt = check.responseTime
     ? t("monitor.responseTimeSuffix", { time: check.responseTime })
     : "";
   return t("monitor.tooltip", { time, status: s, responseTime: rt });
+}
+
+function barClass(check: CheckResult) {
+  if (check.status === "maintenance") return "bar-maintenance";
+  return check.isUp ? "bar-up" : "bar-down";
 }
 </script>
 
@@ -150,6 +163,9 @@ function barTooltip(check: CheckResult) {
   background-color: var(--status-down);
   animation: pulse-slow 2s ease-in-out infinite;
 }
+.dot-maintenance {
+  background-color: var(--status-maintenance);
+}
 .dot-pending {
   background-color: var(--color-base-content, gray);
   opacity: 0.3;
@@ -204,6 +220,9 @@ function barTooltip(check: CheckResult) {
 }
 .bar-down {
   background-color: var(--status-down);
+}
+.bar-maintenance {
+  background-color: var(--status-maintenance);
 }
 .bar-empty {
   background-color: var(--bar-empty);

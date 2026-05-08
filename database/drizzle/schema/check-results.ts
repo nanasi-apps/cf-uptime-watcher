@@ -9,6 +9,9 @@ export const checkResultTable = sqliteTable("check_results", {
   statusCode: integer("status_code"),
   responseTime: integer("response_time"), // milliseconds
   isUp: integer("is_up", { mode: "boolean" }).notNull(),
+  status: text("status", { enum: ["up", "down", "maintenance"] })
+    .notNull()
+    .default("up"),
   errorMessage: text("error_message"),
   checkedAt: text("checked_at")
     .notNull()

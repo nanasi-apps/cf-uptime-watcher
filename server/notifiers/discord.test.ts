@@ -20,6 +20,7 @@ const payload: NotifyPayload = {
     statusCode: 500,
     responseTime: 123,
     isUp: false,
+    status: "down",
     errorMessage: "Server error",
   },
   previouslyUp: true,

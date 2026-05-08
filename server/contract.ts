@@ -21,8 +21,34 @@ const CheckResultSchema = z.object({
   statusCode: z.number().int().nullable(),
   responseTime: z.number().int().nullable(),
   isUp: z.boolean(),
+  status: z.enum(["up", "down", "maintenance"]),
   errorMessage: z.string().nullable(),
   checkedAt: z.string(),
+});
+
+const MaintenanceEventSchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  message: z.string().nullable(),
+  startAt: z.string(),
+  endAt: z.string(),
+  createdAt: z.string(),
+});
+
+const IncidentEventSchema = z.object({
+  id: z.number().int(),
+  title: z.string(),
+  message: z.string().nullable(),
+  resolvedAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+
+const StatusInfoSchema = z.object({
+  maintenanceEvents: z.array(MaintenanceEventSchema),
+  activeMaintenance: MaintenanceEventSchema.nullable(),
+  incidents: z.array(IncidentEventSchema),
+  activeIncident: IncidentEventSchema.nullable(),
+  canCreateIncident: z.boolean(),
 });
 
 const NotificationChannelSchema = z.object({
@@ -255,6 +281,127 @@ export const contract = {
       .input(
         z.object({ id: z.coerce.number().int(), channelIds: z.array(z.coerce.number().int()) }),
       )
+      .output(z.object({ status: z.literal("OK") })),
+  },
+  statusInfo: {
+    get: oc
+      .route({
+        method: "GET",
+        path: "/status-info",
+        summary: "Get maintenance and incident information",
+        description:
+          "Returns maintenance windows, incident records, active status information, and whether a new incident can be created.",
+        tags: ["StatusInfo"],
+      })
+      .output(StatusInfoSchema),
+    getMaintenance: oc
+      .route({
+        method: "GET",
+        path: "/status-info/maintenance/{id}",
+        summary: "Get maintenance information",
+        description: "Returns one scheduled maintenance window by ID.",
+        tags: ["StatusInfo"],
+      })
+      .input(z.object({ id: z.coerce.number().int() }))
+      .output(MaintenanceEventSchema.nullable()),
+    createMaintenance: oc
+      .route(
+        withBearerAuth(
+          "Create maintenance information",
+          "Creates a scheduled maintenance window. Checks recorded during the window use maintenance status.",
+          "/status-info/maintenance",
+          "POST",
+          ["StatusInfo"],
+        ),
+      )
+      .input(
+        z.object({
+          title: z.string().min(1).max(100),
+          message: z.string().max(500).nullable().optional(),
+          startAt: z.string().datetime(),
+          endAt: z.string().datetime(),
+        }),
+      )
+      .output(MaintenanceEventSchema),
+    updateMaintenance: oc
+      .route(
+        withBearerAuth(
+          "Update maintenance information",
+          "Updates a maintenance window.",
+          "/status-info/maintenance/{id}",
+          "PATCH",
+          ["StatusInfo"],
+        ),
+      )
+      .input(
+        z.object({
+          id: z.coerce.number().int(),
+          title: z.string().min(1).max(100),
+          message: z.string().max(500).nullable().optional(),
+          startAt: z.string().datetime(),
+          endAt: z.string().datetime(),
+        }),
+      )
+      .output(z.object({ status: z.literal("OK") })),
+    deleteMaintenance: oc
+      .route(
+        withBearerAuth(
+          "Delete maintenance information",
+          "Deletes a maintenance window.",
+          "/status-info/maintenance/{id}",
+          "DELETE",
+          ["StatusInfo"],
+        ),
+      )
+      .input(z.object({ id: z.coerce.number().int() }))
+      .output(z.object({ status: z.literal("OK") })),
+    createIncident: oc
+      .route(
+        withBearerAuth(
+          "Create incident information",
+          "Creates an active incident only when a monitor is currently down and no maintenance is active.",
+          "/status-info/incidents",
+          "POST",
+          ["StatusInfo"],
+        ),
+      )
+      .input(
+        z.object({
+          title: z.string().min(1).max(100),
+          message: z.string().max(500).nullable().optional(),
+        }),
+      )
+      .output(IncidentEventSchema),
+    updateIncident: oc
+      .route(
+        withBearerAuth(
+          "Update incident information",
+          "Updates incident title, details, and resolved state.",
+          "/status-info/incidents/{id}",
+          "PATCH",
+          ["StatusInfo"],
+        ),
+      )
+      .input(
+        z.object({
+          id: z.coerce.number().int(),
+          title: z.string().min(1).max(100),
+          message: z.string().max(500).nullable().optional(),
+          resolved: z.boolean(),
+        }),
+      )
+      .output(z.object({ status: z.literal("OK") })),
+    resolveIncident: oc
+      .route(
+        withBearerAuth(
+          "Resolve incident information",
+          "Marks an incident as resolved.",
+          "/status-info/incidents/{id}/resolve",
+          "POST",
+          ["StatusInfo"],
+        ),
+      )
+      .input(z.object({ id: z.coerce.number().int() }))
       .output(z.object({ status: z.literal("OK") })),
   },
   notification: {

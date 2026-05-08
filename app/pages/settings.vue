@@ -42,10 +42,7 @@
             text
             @click="selectMonitor(m.id)"
           >
-            <span
-              class="sidebar-dot"
-              :class="m.lastCheck?.isUp ? 'dot-up' : m.lastCheck ? 'dot-down' : 'dot-pending'"
-            ></span>
+            <span class="sidebar-dot" :class="sidebarDotClass(m.lastCheck)"></span>
             <span class="truncate text-sm">{{ m.name }}</span>
           </ElButton>
           <div v-if="monitors.length === 0" class="text-center text-sm app-subtle py-8">
@@ -310,6 +307,196 @@
       </ElCard>
     </div>
 
+    <div v-if="activeTab === 'maintenance'" class="settings-layout">
+      <ElCard :body-style="{ padding: 0 }" class="settings-sidebar" shadow="never">
+        <div class="sidebar-header">
+          <span class="text-sm font-semibold">{{ t("settings.maintenanceList") }}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs app-subtle">{{
+              t("settings.count", { count: statusInfo?.maintenanceEvents.length ?? 0 })
+            }}</span>
+            <ElButton size="small" type="primary" @click="startCreateMaintenance">
+              {{ t("common.add") }}
+            </ElButton>
+          </div>
+        </div>
+        <div class="sidebar-list">
+          <ElButton
+            v-for="event in statusInfo?.maintenanceEvents ?? []"
+            :key="event.id"
+            class="sidebar-item sidebar-item-stacked"
+            :class="{
+              active: maintenancePaneMode === 'edit' && selectedMaintenanceId === event.id,
+            }"
+            text
+            @click="selectMaintenance(event.id)"
+          >
+            <span class="sidebar-dot dot-maintenance"></span>
+            <span class="sidebar-item-body">
+              <span class="truncate text-sm">{{ event.title }}</span>
+              <span class="sidebar-item-meta">{{
+                formatShortPeriod(event.startAt, event.endAt)
+              }}</span>
+            </span>
+          </ElButton>
+          <div
+            v-if="(statusInfo?.maintenanceEvents.length ?? 0) === 0"
+            class="text-center text-sm app-subtle py-8"
+          >
+            {{ t("settings.emptyMaintenance") }}
+          </div>
+        </div>
+      </ElCard>
+
+      <ElCard :body-style="{ padding: '1.25rem' }" class="settings-content" shadow="never">
+        <div v-if="maintenancePaneMode === 'idle'" class="text-center app-subtle py-16">
+          {{ t("settings.selectMaintenanceHint") }}
+        </div>
+        <ElForm v-else class="space-y-4" label-position="top" @submit.prevent="saveMaintenance">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-lg font-bold m-0">
+                {{
+                  maintenancePaneMode === "create"
+                    ? t("settings.createMaintenance")
+                    : t("settings.editMaintenance")
+                }}
+              </h2>
+              <p class="text-sm app-subtle mt-1 mb-0">{{ t("settings.maintenanceDescription") }}</p>
+            </div>
+            <ElButton
+              v-if="maintenancePaneMode === 'edit'"
+              plain
+              size="small"
+              type="danger"
+              @click="deleteSelectedMaintenance"
+            >
+              {{ t("common.delete") }}
+            </ElButton>
+          </div>
+
+          <ElFormItem :label="t('statusInfo.titleLabel')" required>
+            <ElInput v-model="maintenanceForm.title" />
+          </ElFormItem>
+          <ElFormItem :label="t('statusInfo.periodLabel')" required>
+            <ElDatePicker
+              v-model="maintenanceForm.range"
+              :end-placeholder="t('statusInfo.endAt')"
+              :start-placeholder="t('statusInfo.startAt')"
+              type="datetimerange"
+            />
+          </ElFormItem>
+          <ElFormItem :label="t('statusInfo.messageLabel')">
+            <ElInput v-model="maintenanceForm.message" :rows="4" type="textarea" />
+          </ElFormItem>
+          <ElAlert
+            v-if="maintenanceError"
+            :closable="false"
+            :title="maintenanceError"
+            show-icon
+            type="error"
+          />
+          <div class="flex justify-end gap-2 mt-6">
+            <ElButton text type="primary" @click="resetMaintenancePane">{{
+              t("common.cancel")
+            }}</ElButton>
+            <ElButton native-type="submit" type="primary" :loading="maintenanceSaving">
+              {{ maintenancePaneMode === "create" ? t("common.create") : t("common.save") }}
+            </ElButton>
+          </div>
+        </ElForm>
+      </ElCard>
+    </div>
+
+    <div v-if="activeTab === 'incidents'" class="settings-layout">
+      <ElCard :body-style="{ padding: 0 }" class="settings-sidebar" shadow="never">
+        <div class="sidebar-header">
+          <span class="text-sm font-semibold">{{ t("settings.incidentList") }}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs app-subtle">{{
+              t("settings.count", { count: statusInfo?.incidents.length ?? 0 })
+            }}</span>
+            <ElButton
+              :disabled="!statusInfo?.canCreateIncident"
+              size="small"
+              type="primary"
+              @click="startCreateIncident"
+            >
+              {{ t("common.add") }}
+            </ElButton>
+          </div>
+        </div>
+        <div class="sidebar-list">
+          <ElButton
+            v-for="incident in statusInfo?.incidents ?? []"
+            :key="incident.id"
+            class="sidebar-item sidebar-item-stacked"
+            :class="{ active: incidentPaneMode === 'edit' && selectedIncidentId === incident.id }"
+            text
+            @click="selectIncident(incident.id)"
+          >
+            <span class="sidebar-dot" :class="incident.resolvedAt ? 'dot-up' : 'dot-down'"></span>
+            <span class="sidebar-item-body">
+              <span class="truncate text-sm">{{ incident.title }}</span>
+              <span class="sidebar-item-meta">{{ formatShortDate(incident.createdAt) }}</span>
+            </span>
+          </ElButton>
+          <div
+            v-if="(statusInfo?.incidents.length ?? 0) === 0"
+            class="text-center text-sm app-subtle py-8"
+          >
+            {{ t("settings.emptyIncidents") }}
+          </div>
+        </div>
+      </ElCard>
+
+      <ElCard :body-style="{ padding: '1.25rem' }" class="settings-content" shadow="never">
+        <div v-if="incidentPaneMode === 'idle'" class="text-center app-subtle py-16">
+          {{ incidentIdleHint }}
+        </div>
+        <ElForm v-else class="space-y-4" label-position="top" @submit.prevent="saveIncident">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-lg font-bold m-0">
+                {{
+                  incidentPaneMode === "create"
+                    ? t("settings.createIncident")
+                    : t("settings.editIncident")
+                }}
+              </h2>
+              <p class="text-sm app-subtle mt-1 mb-0">{{ t("settings.incidentDescription") }}</p>
+            </div>
+          </div>
+
+          <ElFormItem :label="t('statusInfo.titleLabel')" required>
+            <ElInput v-model="incidentForm.title" />
+          </ElFormItem>
+          <ElFormItem :label="t('statusInfo.messageLabel')">
+            <ElInput v-model="incidentForm.message" :rows="4" type="textarea" />
+          </ElFormItem>
+          <label v-if="incidentPaneMode === 'edit'" class="inline-flex items-center gap-3">
+            <span class="text-sm">{{ t("settings.incidentResolved") }}</span>
+            <ElSwitch v-model="incidentForm.resolved" />
+          </label>
+          <ElAlert
+            v-if="incidentError"
+            :closable="false"
+            :title="incidentError"
+            show-icon
+            type="error"
+          />
+          <div class="flex justify-end gap-2 mt-6">
+            <ElButton text type="primary" @click="resetIncidentPane">{{
+              t("common.cancel")
+            }}</ElButton>
+            <ElButton native-type="submit" type="primary" :loading="incidentSaving">
+              {{ incidentPaneMode === "create" ? t("common.create") : t("common.save") }}
+            </ElButton>
+          </div>
+        </ElForm>
+      </ElCard>
+    </div>
+
     <ClientOnly>
       <ImportMonitorsModal
         v-if="showImportModal"
@@ -323,9 +510,16 @@
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { MonitorWithStatus } from "~/components/types";
+import type {
+  IncidentEvent,
+  MaintenanceEvent,
+  MonitorWithStatus,
+  StatusInformation,
+} from "~/components/types";
 
 type MonitorPaneMode = "idle" | "create" | "edit";
+type MaintenancePaneMode = "idle" | "create" | "edit";
+type IncidentPaneMode = "idle" | "create" | "edit";
 
 interface Channel {
   id: number;
@@ -337,12 +531,17 @@ interface Channel {
   createdAt: string;
 }
 
-const activeTab = ref<"monitors" | "channels" | "bulk">("monitors");
+const activeTab = ref<"monitors" | "channels" | "bulk" | "maintenance" | "incidents">("monitors");
 const { t } = useI18n();
 const monitors = ref<MonitorWithStatus[]>([]);
+const statusInfo = ref<StatusInformation | null>(null);
 const channels = ref<Channel[]>([]);
 const monitorPaneMode = ref<MonitorPaneMode>("idle");
+const maintenancePaneMode = ref<MaintenancePaneMode>("idle");
+const incidentPaneMode = ref<IncidentPaneMode>("idle");
 const selectedMonitorId = ref<number | null>(null);
+const selectedMaintenanceId = ref<number | null>(null);
+const selectedIncidentId = ref<number | null>(null);
 const showImportModal = ref(false);
 
 // Edit form
@@ -350,6 +549,13 @@ const editForm = ref(blankMonitorForm());
 const editChannelIds = ref(new Set<number>());
 const saving = ref(false);
 const saveError = ref("");
+const maintenanceSaving = ref(false);
+const maintenanceError = ref("");
+const incidentSaving = ref(false);
+const incidentError = ref("");
+
+const maintenanceForm = ref(blankMaintenanceForm());
+const incidentForm = ref(blankIncidentForm());
 
 // Bulk assignment
 const bulkChannelIds = ref(new Set<number>());
@@ -387,6 +593,8 @@ const bulkModeOptions = computed(() => [
 
 const tabOptions = computed(() => [
   { value: "monitors", label: t("settings.monitorTab") },
+  { value: "maintenance", label: t("settings.maintenanceTab") },
+  { value: "incidents", label: t("settings.incidentTab") },
   { value: "channels", label: t("settings.channelsTab") },
   { value: "bulk", label: t("settings.bulkTab") },
 ]);
@@ -394,6 +602,21 @@ const tabOptions = computed(() => [
 const selectedMonitor = computed(
   () => monitors.value.find((m) => m.id === selectedMonitorId.value) ?? null,
 );
+const selectedMaintenance = computed(
+  () =>
+    statusInfo.value?.maintenanceEvents.find((event) => event.id === selectedMaintenanceId.value) ??
+    null,
+);
+const selectedIncident = computed(
+  () =>
+    statusInfo.value?.incidents.find((incident) => incident.id === selectedIncidentId.value) ??
+    null,
+);
+const incidentIdleHint = computed(() => {
+  if (statusInfo.value?.canCreateIncident) return t("settings.selectIncidentHint");
+  if (statusInfo.value?.activeMaintenance) return t("statusInfo.incidentDisabledMaintenance");
+  return t("statusInfo.incidentDisabledNoDown");
+});
 
 function blankMonitorForm() {
   return {
@@ -409,6 +632,22 @@ function blankMonitorForm() {
   };
 }
 
+function blankMaintenanceForm() {
+  return {
+    title: "",
+    message: "",
+    range: [] as Date[],
+  };
+}
+
+function blankIncidentForm() {
+  return {
+    title: "",
+    message: "",
+    resolved: false,
+  };
+}
+
 function monitorToForm(m: MonitorWithStatus) {
   return {
     name: m.name,
@@ -421,6 +660,30 @@ function monitorToForm(m: MonitorWithStatus) {
     body: m.body ?? "",
     active: m.active,
   };
+}
+
+function maintenanceToForm(event: MaintenanceEvent) {
+  return {
+    title: event.title,
+    message: event.message ?? "",
+    range: [new Date(event.startAt), new Date(event.endAt)],
+  };
+}
+
+function incidentToForm(incident: IncidentEvent) {
+  return {
+    title: incident.title,
+    message: incident.message ?? "",
+    resolved: Boolean(incident.resolvedAt),
+  };
+}
+
+function formatShortDate(iso: string) {
+  return new Date(iso).toLocaleString();
+}
+
+function formatShortPeriod(startAt: string, endAt: string) {
+  return `${formatShortDate(startAt)} - ${formatShortDate(endAt)}`;
 }
 
 function startCreateMonitor() {
@@ -550,6 +813,150 @@ async function deleteMonitor(m: MonitorWithStatus) {
   await loadMonitors();
 }
 
+function startCreateMaintenance() {
+  maintenancePaneMode.value = "create";
+  selectedMaintenanceId.value = null;
+  maintenanceForm.value = blankMaintenanceForm();
+  maintenanceError.value = "";
+}
+
+function resetMaintenancePane() {
+  maintenancePaneMode.value = "idle";
+  selectedMaintenanceId.value = null;
+  maintenanceForm.value = blankMaintenanceForm();
+  maintenanceError.value = "";
+}
+
+function selectMaintenance(id: number) {
+  maintenancePaneMode.value = "edit";
+  selectedMaintenanceId.value = id;
+  const event = statusInfo.value?.maintenanceEvents.find((item) => item.id === id);
+  if (event) {
+    maintenanceForm.value = maintenanceToForm(event);
+    maintenanceError.value = "";
+  }
+}
+
+async function saveMaintenance() {
+  const [startAt, endAt] = maintenanceForm.value.range;
+  if (!maintenanceForm.value.title || !startAt || !endAt) {
+    maintenanceError.value = t("statusInfo.requiredError");
+    return;
+  }
+
+  maintenanceSaving.value = true;
+  maintenanceError.value = "";
+  try {
+    const input = {
+      title: maintenanceForm.value.title,
+      message: maintenanceForm.value.message || null,
+      startAt: startAt.toISOString(),
+      endAt: endAt.toISOString(),
+    };
+    if (maintenancePaneMode.value === "create") {
+      const created = await client.statusInfo.createMaintenance(input);
+      await refreshStatusSettings();
+      selectMaintenance(created.id);
+      return;
+    }
+    if (maintenancePaneMode.value === "edit" && selectedMaintenanceId.value) {
+      await client.statusInfo.updateMaintenance({ id: selectedMaintenanceId.value, ...input });
+      await refreshStatusSettings();
+      selectMaintenance(selectedMaintenanceId.value);
+    }
+  } catch (e) {
+    maintenanceError.value = e instanceof Error ? e.message : t("settings.saveFailed");
+  } finally {
+    maintenanceSaving.value = false;
+  }
+}
+
+async function deleteSelectedMaintenance() {
+  if (!selectedMaintenance.value) return;
+  try {
+    await ElMessageBox.confirm(
+      t("settings.deleteMaintenanceConfirm", { title: selectedMaintenance.value.title }),
+      t("settings.deleteMaintenanceTitle"),
+      {
+        confirmButtonText: t("common.delete"),
+        cancelButtonText: t("common.cancel"),
+        type: "warning",
+      },
+    );
+  } catch (e) {
+    if (e !== "cancel" && e !== "close") {
+      ElMessage.error(e instanceof Error ? e.message : String(e));
+    }
+    return;
+  }
+  await client.statusInfo.deleteMaintenance({ id: selectedMaintenance.value.id });
+  resetMaintenancePane();
+  await refreshStatusSettings();
+}
+
+function startCreateIncident() {
+  if (!statusInfo.value?.canCreateIncident) {
+    incidentError.value = incidentIdleHint.value;
+    return;
+  }
+  incidentPaneMode.value = "create";
+  selectedIncidentId.value = null;
+  incidentForm.value = blankIncidentForm();
+  incidentError.value = "";
+}
+
+function resetIncidentPane() {
+  incidentPaneMode.value = "idle";
+  selectedIncidentId.value = null;
+  incidentForm.value = blankIncidentForm();
+  incidentError.value = "";
+}
+
+function selectIncident(id: number) {
+  incidentPaneMode.value = "edit";
+  selectedIncidentId.value = id;
+  const incident = statusInfo.value?.incidents.find((item) => item.id === id);
+  if (incident) {
+    incidentForm.value = incidentToForm(incident);
+    incidentError.value = "";
+  }
+}
+
+async function saveIncident() {
+  if (!incidentForm.value.title) {
+    incidentError.value = t("statusInfo.requiredError");
+    return;
+  }
+
+  incidentSaving.value = true;
+  incidentError.value = "";
+  try {
+    const input = {
+      title: incidentForm.value.title,
+      message: incidentForm.value.message || null,
+    };
+    if (incidentPaneMode.value === "create") {
+      const created = await client.statusInfo.createIncident(input);
+      await refreshStatusSettings();
+      selectIncident(created.id);
+      return;
+    }
+    if (incidentPaneMode.value === "edit" && selectedIncidentId.value) {
+      await client.statusInfo.updateIncident({
+        id: selectedIncidentId.value,
+        ...input,
+        resolved: incidentForm.value.resolved,
+      });
+      await refreshStatusSettings();
+      selectIncident(selectedIncidentId.value);
+    }
+  } catch (e) {
+    incidentError.value = e instanceof Error ? e.message : t("settings.saveFailed");
+  } finally {
+    incidentSaving.value = false;
+  }
+}
+
 // Bulk
 function toggleBulkChannel(id: number) {
   const s = new Set(bulkChannelIds.value);
@@ -608,6 +1015,20 @@ async function loadMonitors() {
   monitors.value = await client.monitor.list();
 }
 
+async function loadStatusInfo() {
+  statusInfo.value = await client.statusInfo.get();
+}
+
+async function refreshStatusSettings() {
+  await Promise.all([loadMonitors(), loadStatusInfo()]);
+}
+
+function sidebarDotClass(check: MonitorWithStatus["lastCheck"]) {
+  if (!check) return "dot-pending";
+  if (check.status === "maintenance") return "dot-maintenance";
+  return check.status === "up" ? "dot-up" : "dot-down";
+}
+
 async function loadChannels() {
   channels.value = await client.notification.list();
 }
@@ -618,7 +1039,7 @@ onMounted(async () => {
     navigateTo("/login");
     return;
   }
-  await Promise.all([loadMonitors(), loadChannels()]);
+  await Promise.all([loadMonitors(), loadChannels(), loadStatusInfo()]);
 });
 </script>
 
@@ -723,6 +1144,26 @@ onMounted(async () => {
   background: var(--surface-hover);
 }
 
+.sidebar-item-stacked :deep(> span) {
+  align-items: flex-start;
+}
+
+.sidebar-item-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.sidebar-item-meta {
+  overflow: hidden;
+  color: var(--app-text-subtle);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sidebar-dot {
   width: 0.5rem;
   height: 0.5rem;
@@ -735,6 +1176,9 @@ onMounted(async () => {
 }
 .dot-down {
   background-color: var(--status-down);
+}
+.dot-maintenance {
+  background-color: var(--status-maintenance);
 }
 .dot-pending {
   background-color: var(--color-base-content, gray);
