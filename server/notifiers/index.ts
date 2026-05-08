@@ -15,13 +15,10 @@ export function buildNotifiersFromChannels(channels: NotificationChannel[]): Not
             template: ch.template,
             downTemplate: ch.downTemplate,
             upTemplate: ch.upTemplate,
-            discordContent: ch.discordContent,
             discordUsername: ch.discordUsername,
             discordAvatarUrl: ch.discordAvatarUrl,
             discordTts: ch.discordTts,
-            discordEmbedEnabled: ch.discordEmbedEnabled,
             discordEmbedTitle: ch.discordEmbedTitle,
-            discordEmbedDescription: ch.discordEmbedDescription,
             discordEmbedUrl: ch.discordEmbedUrl,
             discordEmbedColor: ch.discordEmbedColor,
             discordEmbedAuthorName: ch.discordEmbedAuthorName,
@@ -37,8 +34,6 @@ export function buildNotifiersFromChannels(channels: NotificationChannel[]): Not
             discordAllowEveryoneMentions: ch.discordAllowEveryoneMentions,
             discordSuppressEmbeds: ch.discordSuppressEmbeds,
             discordSuppressNotifications: ch.discordSuppressNotifications,
-            discordThreadName: ch.discordThreadName,
-            discordAppliedTags: ch.discordAppliedTags,
           });
         case "slack":
           return createSlackNotifier(ch.webhookUrl, {

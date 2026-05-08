@@ -40,7 +40,6 @@ describe("buildDiscordPayload", () => {
   test("adds configured Discord webhook fields", () => {
     const body = buildDiscordPayload(
       {
-        discordContent: "{{status}} {{monitor.name}}",
         discordUsername: "Healthcheck",
         discordAvatarUrl: "https://example.com/avatar.png",
         discordTts: true,
@@ -49,7 +48,6 @@ describe("buildDiscordPayload", () => {
     );
 
     expect(body).toMatchObject({
-      content: "DOWN API",
       username: "Healthcheck",
       avatar_url: "https://example.com/avatar.png",
       tts: true,
@@ -62,7 +60,6 @@ describe("buildDiscordPayload", () => {
     const body = buildDiscordPayload(
       {
         discordEmbedTitle: "{{monitor.name}} alert",
-        discordEmbedDescription: "Custom {{status}} description",
         discordEmbedUrl: "{{monitor.url}}",
         discordEmbedColor: "#336699",
         discordEmbedAuthorName: "{{monitor.name}} author",
@@ -77,8 +74,6 @@ describe("buildDiscordPayload", () => {
         discordAllowRoleMentions: true,
         discordSuppressEmbeds: true,
         discordSuppressNotifications: true,
-        discordThreadName: "{{monitor.name}} incidents",
-        discordAppliedTags: "111, 222 333",
       },
       payload,
     );
@@ -86,12 +81,10 @@ describe("buildDiscordPayload", () => {
     expect(body).toMatchObject({
       allowed_mentions: { parse: ["users", "roles"] },
       flags: 4100,
-      thread_name: "API incidents",
-      applied_tags: ["111", "222", "333"],
       embeds: [
         {
           title: "API alert",
-          description: "Custom DOWN description",
+          description: expect.stringContaining("[DOWN] API"),
           url: "https://example.com/health",
           color: 0x336699,
           author: {
@@ -113,10 +106,10 @@ describe("buildDiscordPayload", () => {
     expect(body.embeds[0].timestamp).toBeUndefined();
   });
 
-  test("falls back to content when embeds are disabled", () => {
-    const body = buildDiscordPayload({ discordEmbedEnabled: false }, payload);
+  test("always sends the message template as an embed description", () => {
+    const body = buildDiscordPayload({}, payload);
 
-    expect(body.content).toEqual(expect.stringContaining("[DOWN] API"));
-    expect(body.embeds).toBeUndefined();
+    expect(body.content).toBeUndefined();
+    expect(body.embeds).toMatchObject([{ description: expect.stringContaining("[DOWN] API") }]);
   });
 });

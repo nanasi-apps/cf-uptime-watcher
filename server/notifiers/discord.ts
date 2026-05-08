@@ -2,13 +2,10 @@ import { renderTemplate, resolveTemplate, type NotificationTemplates } from "./t
 import type { Notifier, NotifyPayload } from "./types";
 
 type DiscordWebhookConfig = NotificationTemplates & {
-  discordContent?: string | null;
   discordUsername?: string | null;
   discordAvatarUrl?: string | null;
   discordTts?: boolean | null;
-  discordEmbedEnabled?: boolean | null;
   discordEmbedTitle?: string | null;
-  discordEmbedDescription?: string | null;
   discordEmbedUrl?: string | null;
   discordEmbedColor?: string | null;
   discordEmbedAuthorName?: string | null;
@@ -24,8 +21,6 @@ type DiscordWebhookConfig = NotificationTemplates & {
   discordAllowEveryoneMentions?: boolean | null;
   discordSuppressEmbeds?: boolean | null;
   discordSuppressNotifications?: boolean | null;
-  discordThreadName?: string | null;
-  discordAppliedTags?: string | null;
 };
 
 type DiscordPayload = Record<string, unknown>;
@@ -44,17 +39,6 @@ function parseColor(value: string | null | undefined, fallback: number) {
   const normalized = value.trim().replace(/^#/, "").replace(/^0x/i, "");
   const color = Number.parseInt(normalized, 16);
   return Number.isFinite(color) ? color : fallback;
-}
-
-function parseTags(value: string | null | undefined) {
-  if (!value) return undefined;
-
-  const tags = value
-    .split(/[\s,]+/)
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-
-  return tags.length > 0 ? tags : undefined;
 }
 
 function buildAllowedMentions(config: DiscordWebhookConfig) {
@@ -78,10 +62,9 @@ function compactObject(object: DiscordEmbed) {
 
 function buildEmbed(config: DiscordWebhookConfig, payload: NotifyPayload, defaultMessage: string) {
   const defaultColor = payload.result.isUp ? 0x00ff00 : 0xff0000;
-  const description = renderOptional(config.discordEmbedDescription, payload) ?? defaultMessage;
   const embed = compactObject({
     title: renderOptional(config.discordEmbedTitle, payload),
-    description,
+    description: defaultMessage,
     url: renderOptional(config.discordEmbedUrl, payload),
     color: parseColor(config.discordEmbedColor, defaultColor),
     timestamp: config.discordEmbedTimestamp === false ? undefined : new Date().toISOString(),
@@ -114,18 +97,13 @@ export function buildDiscordPayload(
   payload: NotifyPayload,
 ): DiscordPayload {
   const message = renderTemplate(resolveTemplate(config, payload), payload);
-  const content = renderOptional(config.discordContent, payload);
-  const embedEnabled = config.discordEmbedEnabled !== false;
   const discordPayload: DiscordPayload = {
-    content: content || (embedEnabled ? undefined : message),
     username: renderOptional(config.discordUsername, payload),
     avatar_url: renderOptional(config.discordAvatarUrl, payload),
     tts: config.discordTts ?? undefined,
-    embeds: embedEnabled ? [buildEmbed(config, payload, message)] : undefined,
+    embeds: [buildEmbed(config, payload, message)],
     allowed_mentions: buildAllowedMentions(config),
     flags: buildFlags(config),
-    thread_name: renderOptional(config.discordThreadName, payload),
-    applied_tags: parseTags(config.discordAppliedTags),
   };
 
   return Object.fromEntries(
