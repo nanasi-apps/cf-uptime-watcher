@@ -1,20 +1,21 @@
 <template>
-  <ElCard :body-style="{ padding: 0 }" class="bg-base-100" shadow="hover" @click="$emit('click')">
+  <ElCard
+    :body-style="{ padding: '1rem 1.25rem' }"
+    class="monitor-card"
+    shadow="hover"
+    @click="$emit('click')"
+  >
     <div class="monitor-row">
       <div class="monitor-row-header">
-        <div class="flex items-center gap-2 min-w-0">
+        <div class="monitor-title-group">
           <span class="status-dot" :class="dotClass"></span>
-          <span class="font-semibold truncate">{{ monitor.name }}</span>
+          <span class="monitor-title">{{ monitor.name }}</span>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
-          <span v-if="monitor.lastCheck" class="text-xs text-base-content/50 hidden sm:inline">
+        <div class="monitor-meta-group">
+          <span v-if="monitor.lastCheck" class="response-time">
             {{ monitor.lastCheck.responseTime }}ms
           </span>
-          <span
-            v-if="monitor.uptimePercent !== null"
-            class="uptime-pct font-mono text-sm font-semibold"
-            :class="uptimeColorClass"
-          >
+          <span v-if="monitor.uptimePercent !== null" class="uptime-pct" :class="uptimeColorClass">
             {{ monitor.uptimePercent }}%
           </span>
           <ElTag :type="tagType" effect="light" round size="small">
@@ -37,8 +38,8 @@
         </template>
       </div>
       <div class="bar-legend">
-        <span class="text-xs text-base-content/40">{{ barsAgo }}</span>
-        <span class="text-xs text-base-content/40">{{ t("monitor.now") }}</span>
+        <span>{{ barsAgo }}</span>
+        <span>{{ t("monitor.now") }}</span>
       </div>
     </div>
   </ElCard>
@@ -105,21 +106,14 @@ function barTooltip(check: CheckResult) {
 </script>
 
 <style scoped>
-.monitor-row {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
+.monitor-card {
   cursor: pointer;
+}
+
+.monitor-row {
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
-  transition:
-    box-shadow 0.15s,
-    border-color 0.15s;
-}
-
-.monitor-row:hover {
-  box-shadow: 0 2px 8px var(--border-subtle);
 }
 
 .monitor-row-header {
@@ -128,6 +122,35 @@ function barTooltip(check: CheckResult) {
   justify-content: space-between;
   margin-bottom: 0.625rem;
   gap: 1rem;
+}
+
+.monitor-title-group,
+.monitor-meta-group {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.monitor-title-group {
+  gap: 0.5rem;
+}
+
+.monitor-meta-group {
+  flex-shrink: 0;
+  gap: 0.75rem;
+}
+
+.monitor-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.response-time,
+.bar-legend {
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
 }
 
 .status-dot {
@@ -189,5 +212,14 @@ function barTooltip(check: CheckResult) {
 .uptime-pct {
   min-width: 3.5rem;
   text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .response-time {
+    display: none;
+  }
 }
 </style>

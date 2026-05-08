@@ -1,17 +1,15 @@
 <template>
   <ElCard
-    :body-style="{ padding: 0 }"
-    class="bg-base-100 h-full"
+    :body-style="{ height: '100%', padding: '1rem' }"
+    class="grid-card-shell"
     shadow="hover"
     @click="$emit('click')"
   >
     <div class="grid-card">
-      <div class="flex items-start justify-between gap-3 mb-3">
-        <div class="flex items-center gap-2 min-w-0">
+      <div class="grid-card-header">
+        <div class="grid-card-title-group">
           <span class="grid-dot" :class="dotClass"></span>
-          <div class="min-w-0">
-            <div class="font-semibold text-sm truncate">{{ monitor.name }}</div>
-          </div>
+          <span class="grid-card-title">{{ monitor.name }}</span>
         </div>
         <ElTag :type="tagType" effect="light" round size="small">{{ statusText }}</ElTag>
       </div>
@@ -31,15 +29,11 @@
         </template>
       </div>
 
-      <div class="grid-card-meta mt-3">
-        <span
-          v-if="monitor.uptimePercent !== null"
-          class="font-mono text-xs font-semibold"
-          :class="uptimeColorClass"
-        >
+      <div class="grid-card-meta">
+        <span v-if="monitor.uptimePercent !== null" class="grid-uptime" :class="uptimeColorClass">
           {{ monitor.uptimePercent }}%
         </span>
-        <span v-if="monitor.lastCheck" class="text-xs text-base-content/40 font-mono">
+        <span v-if="monitor.lastCheck" class="grid-response-time">
           {{ monitor.lastCheck.responseTime }}ms
         </span>
       </div>
@@ -102,15 +96,12 @@ function barTooltip(check: CheckResult) {
 </script>
 
 <style scoped>
-.grid-card {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1rem;
+.grid-card-shell {
+  height: 100%;
   cursor: pointer;
-  transition:
-    box-shadow 0.15s,
-    border-color 0.15s;
-  /* make cards stretch to equal height inside the grid */
+}
+
+.grid-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -119,8 +110,30 @@ function barTooltip(check: CheckResult) {
   overflow: hidden;
 }
 
-.grid-card:hover {
-  box-shadow: 0 2px 8px var(--border-subtle);
+.grid-card-header,
+.grid-card-title-group {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.grid-card-header {
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.grid-card-title-group {
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grid-card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .grid-dot {
@@ -165,6 +178,21 @@ function barTooltip(check: CheckResult) {
   justify-content: space-between;
   gap: 0.75rem;
   min-height: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.grid-uptime,
+.grid-response-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+}
+
+.grid-uptime {
+  font-weight: 600;
+}
+
+.grid-response-time {
+  color: var(--app-text-subtle);
 }
 
 .bar-sm:hover {

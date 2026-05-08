@@ -1,5 +1,12 @@
 <template>
-  <ElAlert :closable="false" :title="message" :type="alertType" center class="mb-6" show-icon />
+  <ElAlert
+    :closable="false"
+    :title="message"
+    :type="alertType"
+    center
+    class="stats-alert"
+    show-icon
+  />
 </template>
 
 <script lang="ts" setup>
@@ -20,3 +27,9 @@ const message = computed(() => {
   return t("stats.partialDown", { count: props.down });
 });
 </script>
+
+<style scoped>
+.stats-alert {
+  margin-bottom: 1.5rem;
+}
+</style>

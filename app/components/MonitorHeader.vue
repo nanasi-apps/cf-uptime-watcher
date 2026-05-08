@@ -1,19 +1,19 @@
 <template>
-  <ElCard :body-style="{ padding: 0 }" class="bg-base-100 mb-6" shadow="never">
+  <ElCard :body-style="{ padding: '1.25rem' }" class="monitor-header-shell" shadow="never">
     <div class="monitor-header-card">
-      <div class="flex items-start justify-between flex-wrap gap-4">
+      <div class="monitor-header-top">
         <div>
-          <div class="flex items-center gap-3 mb-2">
+          <div class="monitor-title-row">
             <span class="header-status-dot" :class="dotClass"></span>
-            <h2 class="text-xl font-bold m-0">{{ monitor.name }}</h2>
+            <h2 class="monitor-title">{{ monitor.name }}</h2>
             <ElTag :type="tagType" effect="light" round size="small">{{ statusText }}</ElTag>
           </div>
-          <div class="text-sm text-base-content/60">
+          <div class="monitor-url">
             <span class="method-badge">{{ monitor.method }}</span>
             {{ monitor.url }}
           </div>
         </div>
-        <div v-if="isAdmin" class="flex gap-2 flex-wrap">
+        <div v-if="isAdmin" class="monitor-actions">
           <ElButton plain size="small" type="primary" :loading="checking" @click="$emit('check')">
             {{ t("monitor.checkNow") }}
           </ElButton>
@@ -29,17 +29,25 @@
         </div>
       </div>
 
-      <div class="stats-grid mt-5">
-        <ElCard class="bg-base-200/50" shadow="never"
-          ><ElStatistic :title="t('monitor.uptime')" :value="uptimeValue"
+      <div class="stats-grid">
+        <ElCard class="app-card-muted" shadow="never"
+          ><ElStatistic
+            :title="t('monitor.uptime')"
+            :value="uptimeValue"
+            :formatter="formatUptime"
+            suffix="%"
         /></ElCard>
-        <ElCard class="bg-base-200/50" shadow="never"
-          ><ElStatistic :title="t('monitor.responseTime')" :value="responseTimeValue"
+        <ElCard class="app-card-muted" shadow="never"
+          ><ElStatistic
+            :title="t('monitor.responseTime')"
+            :value="responseTimeValue"
+            :formatter="formatResponseTime"
+            suffix="ms"
         /></ElCard>
-        <ElCard class="bg-base-200/50" shadow="never"
-          ><ElStatistic :title="t('monitor.timeout')" :value="`${monitor.timeout}s`"
+        <ElCard class="app-card-muted" shadow="never"
+          ><ElStatistic :title="t('monitor.timeout')" :value="monitor.timeout" suffix="s"
         /></ElCard>
-        <ElCard class="bg-base-200/50" shadow="never"
+        <ElCard class="app-card-muted" shadow="never"
           ><ElStatistic :title="t('monitor.expectedStatus')" :value="monitor.expectedStatus"
         /></ElCard>
       </div>
@@ -81,20 +89,58 @@ const tagType = computed(() => {
   return map[status.value];
 });
 
-const uptimeValue = computed(() =>
-  props.monitor.uptimePercent !== null ? `${props.monitor.uptimePercent}%` : "-",
-);
+const uptimeValue = computed(() => props.monitor.uptimePercent ?? 0);
+const responseTimeValue = computed(() => props.monitor.lastCheck?.responseTime ?? 0);
 
-const responseTimeValue = computed(() =>
-  props.monitor.lastCheck?.responseTime != null ? `${props.monitor.lastCheck.responseTime}ms` : "-",
-);
+function formatUptime(value: number) {
+  return props.monitor.uptimePercent !== null ? String(value) : "-";
+}
+
+function formatResponseTime(value: number) {
+  return props.monitor.lastCheck?.responseTime != null ? String(value) : "-";
+}
 </script>
 
 <style scoped>
+.monitor-header-shell {
+  margin-bottom: 1.5rem;
+}
+
 .monitor-header-card {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
+  min-width: 0;
+}
+
+.monitor-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.monitor-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.monitor-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.monitor-url {
+  color: var(--app-text-muted);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.monitor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .header-status-dot {
@@ -130,6 +176,7 @@ const responseTimeValue = computed(() =>
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+  margin-top: 1.25rem;
 }
 
 @media (min-width: 640px) {

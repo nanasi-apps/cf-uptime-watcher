@@ -1,8 +1,8 @@
 <template>
   <StatsBar :total="monitors.length" :up="upCount" :down="downCount" />
 
-  <div class="flex items-center justify-between my-4 gap-2">
-    <div v-if="isAdmin" class="flex gap-2">
+  <div class="dashboard-toolbar">
+    <div v-if="isAdmin" class="dashboard-actions">
       <ElButton plain size="small" type="primary" @click="showImportModal = true">
         {{ t("common.import") }}
       </ElButton>
@@ -21,21 +21,21 @@
     />
   </div>
 
-  <div v-if="loading" class="text-center py-16">
-    <div class="text-2xl mb-2">{{ t("dashboard.loadingTitle") }}</div>
-    <p class="text-base-content/50 m-0">{{ t("dashboard.loadingDescription") }}</p>
+  <div v-if="loading" class="dashboard-state">
+    <div class="dashboard-state-title">{{ t("dashboard.loadingTitle") }}</div>
+    <p class="dashboard-state-text">{{ t("dashboard.loadingDescription") }}</p>
   </div>
 
-  <div v-else-if="monitors.length === 0" class="text-center py-16">
-    <div class="text-4xl mb-3 opacity-20">📡</div>
-    <p class="text-base-content/50 m-0">{{ t("dashboard.empty") }}</p>
-    <p v-if="isAdmin" class="text-base-content/40 text-sm mt-1 mb-0">
+  <div v-else-if="monitors.length === 0" class="dashboard-state">
+    <div class="dashboard-empty-icon">📡</div>
+    <p class="dashboard-state-text">{{ t("dashboard.empty") }}</p>
+    <p v-if="isAdmin" class="dashboard-state-hint">
       {{ t("dashboard.emptyAdminHint") }}
     </p>
   </div>
 
   <!-- List view -->
-  <div v-if="viewMode === 'list'" class="monitor-list space-y-3 mb-8">
+  <div v-if="viewMode === 'list'" class="monitor-list">
     <MonitorCard
       v-for="monitor in monitors"
       :key="monitor.id"
@@ -45,7 +45,7 @@
   </div>
 
   <!-- Grid view -->
-  <div v-else class="monitor-grid mb-8">
+  <div v-else class="monitor-grid">
     <MonitorGridCard
       v-for="monitor in monitors"
       :key="monitor.id"
@@ -121,9 +121,54 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   gap: 1rem;
   min-width: 0;
+  margin-bottom: 2rem;
 }
 
 .monitor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   min-width: 0;
+  margin-bottom: 2rem;
+}
+
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dashboard-state {
+  padding: 4rem 0;
+  text-align: center;
+}
+
+.dashboard-state-title {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.dashboard-state-text {
+  margin: 0;
+  color: var(--app-text-muted);
+}
+
+.dashboard-state-hint {
+  margin: 0.25rem 0 0;
+  color: var(--app-text-subtle);
+  font-size: 0.875rem;
+}
+
+.dashboard-empty-icon {
+  margin-bottom: 0.75rem;
+  font-size: 2.25rem;
+  opacity: 0.2;
 }
 </style>
