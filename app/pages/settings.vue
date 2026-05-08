@@ -44,9 +44,7 @@
             <AppButton variant="outline" size="xs" @click="showImportModal = true">
               インポート
             </AppButton>
-            <AppButton variant="primary" size="xs" @click="showCreateModal = true">
-              + 追加
-            </AppButton>
+            <AppButton variant="primary" size="xs" @click="startCreateMonitor"> + 追加 </AppButton>
           </div>
         </div>
         <div class="sidebar-list">
@@ -54,7 +52,7 @@
             v-for="m in monitors"
             :key="m.id"
             class="sidebar-item"
-            :class="{ active: selectedMonitorId === m.id }"
+            :class="{ active: monitorPaneMode === 'edit' && selectedMonitorId === m.id }"
             @click="selectMonitor(m.id)"
           >
             <span
@@ -71,13 +69,24 @@
 
       <!-- Right: Monitor settings form -->
       <div class="settings-content bg-base-100">
-        <div v-if="!selectedMonitor" class="text-center text-base-content/40 py-16">
-          左のリストからモニターを選択してください
+        <div v-if="monitorPaneMode === 'idle'" class="text-center text-base-content/40 py-16">
+          左のリストからモニターを選択、または新規作成してください
         </div>
         <template v-else>
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold m-0">{{ selectedMonitor.name }}</h2>
-            <div class="flex gap-2">
+            <div>
+              <h2 class="text-lg font-bold m-0">
+                {{ monitorPaneMode === "create" ? "モニター追加" : selectedMonitor?.name }}
+              </h2>
+              <p class="text-sm text-base-content/50 mt-1 mb-0">
+                {{
+                  monitorPaneMode === "create"
+                    ? "新しいモニターを作成します"
+                    : "モニター設定を編集します"
+                }}
+              </p>
+            </div>
+            <div v-if="monitorPaneMode === 'edit' && selectedMonitor" class="flex gap-2">
               <AppButton variant="outline" size="sm" @click="duplicateMonitor(selectedMonitor)">
                 複製
               </AppButton>
@@ -114,6 +123,15 @@
               />
 
               <div v-if="editForm.method === 'POST'">
+                <div class="mb-4">
+                  <AppSelect
+                    :model-value="selectedContentType"
+                    label="Content-Type"
+                    :options="contentTypeOptions"
+                    @update:model-value="handleContentTypeChange"
+                  />
+                </div>
+
                 <AppCollapsible title="リクエストボディ">
                   <AppTextarea
                     v-model="editForm.body"
@@ -135,10 +153,10 @@
                 />
               </AppCollapsible>
 
-              <AppToggle v-model="editForm.active" label="有効" />
+              <AppToggle v-if="monitorPaneMode === 'edit'" v-model="editForm.active" label="有効" />
 
               <!-- Channel selector inline -->
-              <div class="settings-section">
+              <div v-if="monitorPaneMode === 'edit'" class="settings-section">
                 <h3 class="text-sm font-semibold mb-2">通知チャンネル</h3>
                 <div v-if="channels.length === 0" class="text-sm text-base-content/40">
                   通知チャンネルが未設定です
@@ -164,8 +182,11 @@
               saveError
             }}</AppAlert>
 
-            <div class="flex justify-end mt-6">
-              <AppButton type="submit" variant="primary" :loading="saving">保存</AppButton>
+            <div class="flex justify-end gap-2 mt-6">
+              <AppButton variant="ghost" @click="resetMonitorPane">キャンセル</AppButton>
+              <AppButton type="submit" variant="primary" :loading="saving">
+                {{ monitorPaneMode === "create" ? "作成" : "保存" }}
+              </AppButton>
             </div>
           </form>
         </template>
@@ -253,11 +274,6 @@
       </div>
     </div>
 
-    <CreateMonitorModal
-      :open="showCreateModal"
-      @close="showCreateModal = false"
-      @created="onMonitorCreated"
-    />
     <ImportMonitorsModal
       :open="showImportModal"
       @close="showImportModal = false"
@@ -270,6 +286,8 @@
 import type { MonitorWithStatus } from "~/components/types";
 
 definePageMeta({ middleware: "auth" });
+
+type MonitorPaneMode = "idle" | "create" | "edit";
 
 interface Channel {
   id: number;
@@ -284,22 +302,12 @@ interface Channel {
 const activeTab = ref<"monitors" | "channels" | "bulk">("monitors");
 const monitors = ref<MonitorWithStatus[]>([]);
 const channels = ref<Channel[]>([]);
+const monitorPaneMode = ref<MonitorPaneMode>("idle");
 const selectedMonitorId = ref<number | null>(null);
-const showCreateModal = ref(false);
 const showImportModal = ref(false);
 
 // Edit form
-const editForm = ref({
-  name: "",
-  displayName: "",
-  url: "",
-  method: "GET",
-  timeout: "30",
-  expectedStatus: "200",
-  headers: "",
-  body: "",
-  active: true,
-});
+const editForm = ref(blankMonitorForm());
 const editChannelIds = ref(new Set<number>());
 const saving = ref(false);
 const saveError = ref("");
@@ -317,6 +325,22 @@ const methodOptions = [
   { value: "POST", label: "POST" },
 ];
 
+const headersRef = computed({
+  get: () => editForm.value.headers,
+  set: (value: string) => {
+    editForm.value.headers = value;
+  },
+});
+
+const { parseHeaders, selectedContentType, handleContentTypeChange, CONTENT_TYPE_OPTIONS } =
+  useHeadersEditor(headersRef);
+
+const contentTypeOptions = [
+  { value: "", label: "なし" },
+  ...CONTENT_TYPE_OPTIONS.map((contentType) => ({ value: contentType, label: contentType })),
+  { value: "custom", label: "カスタム / ヘッダーJSONを保持" },
+];
+
 const bulkModeOptions = [
   { value: "replace", label: "置換（既存を上書き）" },
   { value: "add", label: "追加（既存に追加）" },
@@ -326,21 +350,56 @@ const selectedMonitor = computed(
   () => monitors.value.find((m) => m.id === selectedMonitorId.value) ?? null,
 );
 
+function blankMonitorForm() {
+  return {
+    name: "",
+    displayName: "",
+    url: "",
+    method: "GET",
+    timeout: "30",
+    expectedStatus: "200",
+    headers: "",
+    body: "",
+    active: true,
+  };
+}
+
+function monitorToForm(m: MonitorWithStatus) {
+  return {
+    name: m.name,
+    displayName: m.displayName || "",
+    url: m.url,
+    method: m.method,
+    timeout: String(m.timeout),
+    expectedStatus: String(m.expectedStatus),
+    headers: m.headers ?? "",
+    body: m.body ?? "",
+    active: m.active,
+  };
+}
+
+function startCreateMonitor() {
+  monitorPaneMode.value = "create";
+  selectedMonitorId.value = null;
+  editForm.value = blankMonitorForm();
+  editChannelIds.value = new Set();
+  saveError.value = "";
+}
+
+function resetMonitorPane() {
+  monitorPaneMode.value = "idle";
+  selectedMonitorId.value = null;
+  editForm.value = blankMonitorForm();
+  editChannelIds.value = new Set();
+  saveError.value = "";
+}
+
 function selectMonitor(id: number) {
+  monitorPaneMode.value = "edit";
   selectedMonitorId.value = id;
   const m = monitors.value.find((mon) => mon.id === id);
   if (m) {
-    editForm.value = {
-      name: m.name,
-      displayName: m.displayName || "",
-      url: m.url,
-      method: m.method,
-      timeout: String(m.timeout),
-      expectedStatus: String(m.expectedStatus),
-      headers: m.headers ?? "",
-      body: m.body ?? "",
-      active: m.active,
-    };
+    editForm.value = monitorToForm(m);
     editChannelIds.value = new Set(m.channelIds);
     saveError.value = "";
   }
@@ -357,12 +416,12 @@ async function toggleChannel(channelId: number) {
 }
 
 async function saveMonitor() {
-  if (!selectedMonitorId.value) return;
   saving.value = true;
   saveError.value = "";
   try {
-    await client.monitor.update({
-      id: selectedMonitorId.value,
+    parseHeaders(editForm.value.headers);
+
+    const monitorInput = {
       name: editForm.value.name,
       displayName: editForm.value.displayName || null,
       url: editForm.value.url,
@@ -371,13 +430,27 @@ async function saveMonitor() {
       expectedStatus: Number(editForm.value.expectedStatus),
       headers: editForm.value.headers || null,
       body: editForm.value.method === "POST" ? editForm.value.body || null : null,
-      active: editForm.value.active,
-    });
-    await client.monitor.setChannels({
-      id: selectedMonitorId.value,
-      channelIds: [...editChannelIds.value],
-    });
-    await loadMonitors();
+    };
+
+    if (monitorPaneMode.value === "create") {
+      const created = await client.monitor.create(monitorInput);
+      await loadMonitors();
+      selectMonitor(created.id);
+      return;
+    }
+
+    if (monitorPaneMode.value === "edit" && selectedMonitorId.value) {
+      await client.monitor.update({
+        id: selectedMonitorId.value,
+        ...monitorInput,
+        active: editForm.value.active,
+      });
+      await client.monitor.setChannels({
+        id: selectedMonitorId.value,
+        channelIds: [...editChannelIds.value],
+      });
+      await loadMonitors();
+    }
   } catch (e) {
     saveError.value = e instanceof Error ? e.message : "保存に失敗しました";
   } finally {
@@ -387,6 +460,8 @@ async function saveMonitor() {
 
 async function duplicateMonitor(m: MonitorWithStatus) {
   try {
+    parseHeaders(m.headers ?? "");
+
     const created = await client.monitor.create({
       name: `${m.name} (コピー)`,
       displayName: m.displayName ? `${m.displayName} (コピー)` : null,
@@ -407,7 +482,7 @@ async function duplicateMonitor(m: MonitorWithStatus) {
 async function deleteMonitor(m: MonitorWithStatus) {
   if (!confirm(`「${m.name}」を削除しますか？`)) return;
   await client.monitor.delete({ id: m.id });
-  selectedMonitorId.value = null;
+  resetMonitorPane();
   await loadMonitors();
 }
 
@@ -462,14 +537,6 @@ async function applyBulkChannels() {
     bulkResultVariant.value = "error";
   } finally {
     bulkSaving.value = false;
-  }
-}
-
-async function onMonitorCreated() {
-  await loadMonitors();
-  // 新しく作成されたモニターを選択
-  if (monitors.value.length > 0) {
-    selectMonitor(monitors.value[monitors.value.length - 1].id);
   }
 }
 
