@@ -1,26 +1,22 @@
 <template>
-  <div class="flex min-h-[70vh] items-center justify-center">
-    <ElCard :body-style="{ padding: 0 }" class="w-full max-w-sm slide-up" shadow="always">
-      <div class="p-6">
-        <div class="flex flex-col items-center gap-3 mb-2">
-          <span
-            class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-content text-lg font-black"
-          >
-            HC
-          </span>
-          <h2 class="text-xl font-bold m-0">{{ t("login.title") }}</h2>
-          <p class="text-sm text-base-content/50 m-0">{{ t("login.description") }}</p>
+  <div class="login-page">
+    <ElCard :body-style="{ padding: 0 }" class="login-card" shadow="always">
+      <div class="login-card-body">
+        <div class="login-header">
+          <span class="login-mark"> HC </span>
+          <h2 class="login-title">{{ t("login.title") }}</h2>
+          <p class="login-description">{{ t("login.description") }}</p>
         </div>
 
         <form @submit.prevent="handleLogin">
-          <ElFormItem class="mt-4" :error="error" :label="t('login.password')" required>
+          <ElFormItem class="password-field" :error="error" :label="t('login.password')" required>
             <ElInput id="password" v-model="password" type="password" required />
           </ElFormItem>
 
-          <div v-if="error" class="mt-3 text-sm text-error text-center">{{ error }}</div>
+          <div v-if="error" class="login-error">{{ error }}</div>
 
-          <div class="mt-6">
-            <ElButton native-type="submit" class="w-full" type="primary" :loading="loading">
+          <div class="login-actions">
+            <ElButton native-type="submit" class="login-submit" type="primary" :loading="loading">
               {{ t("common.login") }}
             </ElButton>
           </div>
@@ -54,3 +50,74 @@ async function handleLogin() {
   }
 }
 </script>
+
+<style scoped>
+.login-page {
+  display: flex;
+  min-height: 70vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 24rem;
+  animation: slide-up 0.25s ease-out;
+}
+
+.login-card-body {
+  padding: 1.5rem;
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: var(--el-color-primary);
+  color: var(--app-primary-text);
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.login-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.login-description {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 0.875rem;
+}
+
+.password-field {
+  margin-top: 1rem;
+}
+
+.login-error {
+  margin-top: 0.75rem;
+  color: var(--el-color-danger);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.login-actions {
+  margin-top: 1.5rem;
+}
+
+.login-submit {
+  width: 100%;
+}
+</style>
