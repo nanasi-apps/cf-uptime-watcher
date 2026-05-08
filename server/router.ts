@@ -37,7 +37,7 @@ function maskMonitorData(monitor: Record<string, any>, hasAuth: boolean) {
   return {
     ...monitor,
     name: monitor.displayName || monitor.name,
-    url: "***（非表示）***",
+    url: monitor.url || "Hidden",
     headers: null,
     body: null,
   };
