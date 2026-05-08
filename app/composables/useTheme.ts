@@ -8,6 +8,12 @@ function isTheme(value: string | null): value is Theme {
   return value === "light" || value === "dark";
 }
 
+function getPreferredTheme(): Theme {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (isTheme(stored)) return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 function applyTheme(t: Theme) {
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("data-theme", t);
@@ -17,13 +23,12 @@ function applyTheme(t: Theme) {
 
 export function useTheme() {
   function init() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (isTheme(stored)) {
-      theme.value = stored;
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      theme.value = "dark";
-    }
+    theme.value = getPreferredTheme();
     applyTheme(theme.value);
+  }
+
+  function initDom() {
+    applyTheme(getPreferredTheme());
   }
 
   function toggle() {
@@ -38,5 +43,5 @@ export function useTheme() {
     applyTheme(t);
   }
 
-  return { theme, init, toggle, set };
+  return { theme, init, initDom, toggle, set };
 }

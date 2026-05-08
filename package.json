@@ -29,10 +29,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.4",
     "@types/node": "^20.19.40",
-    "daisyui": "^5.5.19",
-    "tailwindcss": "^4.2.4",
     "typescript": "^5.9.3",
     "vite-plus": "latest",
     "wrangler": "^4.90.0"

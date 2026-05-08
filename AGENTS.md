@@ -16,7 +16,7 @@
 - Nitro uses `preset: "cloudflare-module"`; Wrangler deploys `.output/server/index.mjs` and serves `.output/public`.
 - Scheduled checks are wired in both `nuxt.config.ts` (`nitro.scheduledTasks`) and `wrangler.toml` (`triggers.crons`) as `*/5 * * * *`; keep them aligned.
 - Components are auto-imported from `app/components` with `pathPrefix: false`, so use names like `<AppButton>` rather than path-prefixed names.
-- UI uses Tailwind CSS v4 plus DaisyUI. Theme/status tokens and custom utilities are in `app/assets/css/tailwind.css`; prefer the existing `app/components/ui/*` primitives.
+- UI uses Element Plus. App theme/status tokens and small local view styles are in `app/assets/css/app.css`; prefer Element Plus components and the existing `app/components/ui/*` primitives.
 - Dashboard copy is primarily Japanese; keep user-facing UI text consistent unless a feature already uses English.
 
 ## API And Data

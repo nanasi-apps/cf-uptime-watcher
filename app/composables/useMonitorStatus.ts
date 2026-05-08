@@ -15,9 +15,9 @@ export function useMonitorStatus(
 
   const statusColor = computed(() => {
     const map: Record<string, string> = {
-      up: "bg-success",
-      down: "bg-error",
-      pending: "bg-base-content/30",
+      up: "status-dot-up",
+      down: "status-dot-down",
+      pending: "status-dot-pending",
     };
     return map[status.value];
   });
@@ -46,9 +46,9 @@ export function useMonitorStatus(
   const uptimeColorClass = computed(() => {
     const p = toValue(uptimePercent);
     if (p === null) return "";
-    if (p >= 99) return "text-success";
-    if (p >= 95) return "text-warning";
-    return "text-error";
+    if (p >= 99) return "uptime-success";
+    if (p >= 95) return "uptime-warning";
+    return "uptime-danger";
   });
 
   return { statusColor, statusVariant, statusText, statusLabelKey, status, uptimeColorClass };

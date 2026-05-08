@@ -48,18 +48,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.2.4
-        version: 4.2.4(vite@7.3.3(@types/node@20.19.40)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       '@types/node':
         specifier: ^20.19.40
         version: 20.19.40
-      daisyui:
-        specifier: ^5.5.19
-        version: 5.5.19
-      tailwindcss:
-        specifier: ^4.2.4
-        version: 4.2.4
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

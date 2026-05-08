@@ -1,4 +1,4 @@
 export default defineNuxtPlugin(() => {
-  const { init } = useTheme();
-  init();
+  const { initDom } = useTheme();
+  initDom();
 });

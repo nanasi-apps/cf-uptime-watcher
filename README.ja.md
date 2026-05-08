@@ -14,7 +14,7 @@
 
 - 🌐 実運用例: https://uptime.nanasi-apps.xyz/
 - ☁️ 実行環境: Cloudflare Workers + D1
-- 🎨 フロントエンド: Nuxt 4, Vue 3, Tailwind CSS v4, DaisyUI, Element Plus
+- 🎨 フロントエンド: Nuxt 4, Vue 3, Element Plus
 
 ## ✨ どうして作ったの？
 
@@ -52,7 +52,7 @@ https://uptime.nanasi-apps.xyz/
 | ランタイム   | Nitro `cloudflare-module` 経由の [Cloudflare Workers](https://workers.cloudflare.com/) |
 | データベース | [Cloudflare D1](https://developers.cloudflare.com/d1/)                                 |
 | ORM          | [Drizzle ORM](https://orm.drizzle.team/)                                               |
-| UI           | Tailwind CSS v4, DaisyUI, Element Plus                                                 |
+| UI           | Element Plus                                                                           |
 | ツール       | [Vite+](https://github.com/uncenter/vite-plus) command wrapper, Wrangler               |
 
 ## 🚢 Cloudflareへデプロイ

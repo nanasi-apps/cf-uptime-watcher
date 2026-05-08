@@ -12,7 +12,7 @@ Language: English | [日本語](./README.ja.md)
 
 - 🌐 Live usage example: https://uptime.nanasi-apps.xyz/
 - ☁️ Runtime: Cloudflare Workers + D1
-- 🎨 Frontend: Nuxt 4, Vue 3, Tailwind CSS v4, DaisyUI, Element Plus
+- 🎨 Frontend: Nuxt 4, Vue 3, Element Plus
 
 ## ✨ Why Did I Build This?
 
@@ -48,7 +48,7 @@ https://uptime.nanasi-apps.xyz/
 | Runtime       | [Cloudflare Workers](https://workers.cloudflare.com/) via Nitro `cloudflare-module` |
 | Database      | [Cloudflare D1](https://developers.cloudflare.com/d1/)                              |
 | ORM           | [Drizzle ORM](https://orm.drizzle.team/)                                            |
-| UI            | Tailwind CSS v4, DaisyUI, Element Plus                                              |
+| UI            | Element Plus                                                                        |
 | Tooling       | [Vite+](https://github.com/uncenter/vite-plus) command wrapper, Wrangler            |
 
 ## 🚢 Deploy To Cloudflare
