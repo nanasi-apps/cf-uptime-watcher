@@ -22,6 +22,7 @@
 ## API And Data
 
 - The executable API path is oRPC under `/rpc` (`server/routes/rpc/[...].ts` with `prefix: "/rpc"`). If README `/api/...` examples conflict, trust `server/contract.ts`, `server/router.ts`, and the client in `app/utils/rpc-client.ts`.
+- Internal `/api` routes are incorrect for this project. Do not add, keep, or call `server/api/*` endpoints for app data; expose and consume all internal application APIs through oRPC instead.
 - API contracts and OpenAPI metadata are declared in `server/contract.ts`; handlers are implemented in `server/router.ts`. Update both sides together.
 - Browser calls should go through the typed oRPC client in `app/utils/rpc-client.ts`; it reads `auth_token` from `localStorage` and sends `Authorization: Bearer <token>`.
 - Write operations compare the bearer token to `AUTH_PASSWORD`; local dev uses `.dev.vars` and production uses Cloudflare secrets.
