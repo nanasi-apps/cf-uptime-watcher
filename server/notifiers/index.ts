@@ -10,9 +10,22 @@ export function buildNotifiersFromChannels(channels: NotificationChannel[]): Not
     .map((ch) => {
       switch (ch.type) {
         case "discord":
-          return createDiscordNotifier(ch.webhookUrl, ch.template);
+          return createDiscordNotifier({
+            webhookUrl: ch.webhookUrl,
+            template: ch.template,
+            downTemplate: ch.downTemplate,
+            upTemplate: ch.upTemplate,
+            discordContent: ch.discordContent,
+            discordUsername: ch.discordUsername,
+            discordAvatarUrl: ch.discordAvatarUrl,
+            discordTts: ch.discordTts,
+          });
         case "slack":
-          return createSlackNotifier(ch.webhookUrl, ch.template);
+          return createSlackNotifier(ch.webhookUrl, {
+            template: ch.template,
+            downTemplate: ch.downTemplate,
+            upTemplate: ch.upTemplate,
+          });
         default:
           return null;
       }
