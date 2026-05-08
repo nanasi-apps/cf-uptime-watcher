@@ -116,18 +116,24 @@
             </AppCollapsible>
 
             <AppCollapsible v-if="form.type === 'discord'" title="Discord Payload設定">
-              <AppInput v-model="form.discordUsername" label="Username" placeholder="Healthcheck" />
-              <AppInput
-                v-model="form.discordAvatarUrl"
-                label="Avatar URL"
-                type="text"
-                placeholder="https://example.com/avatar.png"
-              />
-              <AppToggle v-model="form.discordTts" label="TTSで送信" />
-
-              <div class="settings-subsection">
-                <h3 class="mb-2 text-sm font-semibold">Embed</h3>
+              <div class="discord-payload-settings">
                 <div class="discord-field-group">
+                  <AppInput
+                    v-model="form.discordUsername"
+                    label="Username"
+                    placeholder="Healthcheck"
+                  />
+                  <AppInput
+                    v-model="form.discordAvatarUrl"
+                    label="Avatar URL"
+                    type="text"
+                    placeholder="https://example.com/avatar.png"
+                  />
+                  <AppToggle v-model="form.discordTts" label="TTSで送信" />
+                </div>
+
+                <div class="settings-subsection">
+                  <h3 class="text-sm font-semibold">Embed</h3>
                   <AppInput
                     v-model="form.discordEmbedTitle"
                     label="Embed Title"
@@ -145,11 +151,9 @@
                   />
                   <AppToggle v-model="form.discordEmbedTimestamp" label="Timestampを付ける" />
                 </div>
-              </div>
 
-              <div class="settings-subsection">
-                <h3 class="mb-2 text-sm font-semibold">Embed Author / Image / Footer</h3>
-                <div class="discord-field-group">
+                <div class="settings-subsection">
+                  <h3 class="text-sm font-semibold">Embed Author / Image / Footer</h3>
                   <AppInput v-model="form.discordEmbedAuthorName" label="Author Name" />
                   <AppInput v-model="form.discordEmbedAuthorUrl" label="Author URL" />
                   <AppInput v-model="form.discordEmbedAuthorIconUrl" label="Author Icon URL" />
@@ -158,23 +162,21 @@
                   <AppInput v-model="form.discordEmbedFooterText" label="Footer Text" />
                   <AppInput v-model="form.discordEmbedFooterIconUrl" label="Footer Icon URL" />
                 </div>
-              </div>
 
-              <div class="settings-subsection">
-                <h3 class="mb-2 text-sm font-semibold">Mentions / Flags</h3>
-                <div class="discord-field-group">
+                <div class="settings-subsection">
+                  <h3 class="text-sm font-semibold">Mentions / Flags</h3>
                   <AppToggle v-model="form.discordAllowUserMentions" label="User mentionsを許可" />
                   <AppToggle v-model="form.discordAllowRoleMentions" label="Role mentionsを許可" />
                   <AppToggle v-model="form.discordAllowEveryoneMentions" label="@everyoneを許可" />
                   <AppToggle v-model="form.discordSuppressEmbeds" label="リンクEmbedを抑制" />
                   <AppToggle v-model="form.discordSuppressNotifications" label="通知を抑制" />
                 </div>
-              </div>
 
-              <p class="mt-2 text-xs text-base-content/50">
-                メッセージ本文はダウン時/復旧時テンプレートからEmbed本文として送信されます。Username、Avatar
-                URL、Embed項目はテンプレート変数を使えます。
-              </p>
+                <p class="text-xs text-base-content/50">
+                  メッセージ本文はダウン時/復旧時テンプレートからEmbed本文として送信されます。Username、Avatar
+                  URL、Embed項目はテンプレート変数を使えます。
+                </p>
+              </div>
             </AppCollapsible>
 
             <AppToggle v-model="form.active" label="有効" />
@@ -562,11 +564,15 @@ onMounted(load);
 }
 
 .settings-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
   padding: 0.75rem;
   background: var(--surface-hover);
   border-radius: 0.5rem;
 }
 
+.discord-payload-settings,
 .discord-field-group {
   display: flex;
   flex-direction: column;
