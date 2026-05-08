@@ -1,21 +1,21 @@
 <template>
   <div>
-    <div class="text-sm breadcrumbs mb-4">
-      <ul>
+    <nav class="monitor-breadcrumbs">
+      <ol>
         <li>
           <NuxtLink to="/">{{ t("monitor.title") }}</NuxtLink>
         </li>
-        <li class="text-base-content/50">{{ monitor?.name ?? t("monitor.loading") }}</li>
-      </ul>
-    </div>
+        <li class="monitor-breadcrumb-current">{{ monitor?.name ?? t("monitor.loading") }}</li>
+      </ol>
+    </nav>
 
-    <div v-if="!monitor" class="space-y-4">
+    <div v-if="!monitor" class="monitor-loading">
       <ElCard shadow="never">
-        <div class="animate-pulse space-y-3">
-          <div class="h-6 bg-base-content/10 rounded w-1/3"></div>
-          <div class="h-4 bg-base-content/10 rounded w-2/3"></div>
-          <div class="grid grid-cols-4 gap-4 mt-4">
-            <div v-for="i in 4" :key="i" class="h-12 bg-base-content/10 rounded"></div>
+        <div class="loading-skeleton">
+          <div class="skeleton-line skeleton-title"></div>
+          <div class="skeleton-line skeleton-text"></div>
+          <div class="skeleton-grid">
+            <div v-for="i in 4" :key="i" class="skeleton-stat"></div>
           </div>
         </div>
       </ElCard>
@@ -33,7 +33,7 @@
       />
 
       <MonitorChannelSelector
-        v-if="isAdmin"
+        v-if="isAdmin && monitorId !== null"
         :monitor-id="monitorId"
         :channel-ids="monitor.channelIds"
       />
@@ -51,12 +51,12 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { MonitorWithStatus, CheckResult } from "~/components/types";
 
 const route = useRoute();
-const monitorId = Number(route.params.id);
+const monitorId = computed(() => parseMonitorId(route.params.id, route.path));
 const { t } = useI18n();
 
 const monitor = ref<MonitorWithStatus | null>(null);
@@ -65,21 +65,35 @@ const checking = ref(false);
 const isAdmin = ref(false);
 const showEditModal = ref(false);
 
+function parseMonitorId(param: unknown, path: string) {
+  const value = Array.isArray(param) ? param[0] : param;
+  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
+
+  const match = path.match(/^\/monitors\/(\d+)(?:\/|$)/);
+  return match ? Number(match[1]) : null;
+}
+
 async function loadMonitor() {
-  const data = await client.monitor.get({ id: monitorId });
+  if (monitorId.value === null) return;
+
+  const data = await client.monitor.get({ id: monitorId.value });
   if (data) {
     monitor.value = data;
   }
 }
 
 async function loadHistory() {
-  history.value = await client.monitor.history({ id: monitorId, limit: 200 });
+  if (monitorId.value === null) return;
+
+  history.value = await client.monitor.history({ id: monitorId.value, limit: 200 });
 }
 
 async function checkNow() {
+  if (monitorId.value === null) return;
+
   checking.value = true;
   try {
-    await client.monitor.checkNow({ id: monitorId });
+    await client.monitor.checkNow({ id: monitorId.value });
     await Promise.all([loadMonitor(), loadHistory()]);
   } finally {
     checking.value = false;
@@ -103,7 +117,9 @@ async function confirmDelete() {
     }
     return;
   }
-  await client.monitor.delete({ id: monitorId });
+  if (monitorId.value === null) return;
+
+  await client.monitor.delete({ id: monitorId.value });
   navigateTo("/");
 }
 
@@ -131,7 +147,77 @@ async function duplicateMonitor() {
 }
 
 onMounted(async () => {
+  if (monitorId.value === null) {
+    await navigateTo("/");
+    return;
+  }
+
   isAdmin.value = !!localStorage.getItem("auth_token");
   await Promise.all([loadMonitor(), loadHistory()]);
 });
 </script>
+
+<style scoped>
+.monitor-breadcrumbs {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.monitor-breadcrumbs ol {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.monitor-breadcrumbs li + li::before {
+  content: "/";
+  margin-right: 0.5rem;
+  color: var(--app-text-subtle);
+}
+
+.monitor-breadcrumb-current {
+  color: var(--app-text-muted);
+}
+
+.monitor-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+.skeleton-line,
+.skeleton-stat {
+  border-radius: 0.25rem;
+  background: var(--el-fill-color);
+}
+
+.skeleton-title {
+  width: 33%;
+  height: 1.5rem;
+}
+
+.skeleton-text {
+  width: 66%;
+  height: 1rem;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.skeleton-stat {
+  height: 3rem;
+}
+</style>

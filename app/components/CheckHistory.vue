@@ -1,7 +1,7 @@
 <template>
-  <ElCard :body-style="{ padding: 0 }" class="bg-base-100" shadow="never">
+  <ElCard :body-style="{ padding: '1.25rem' }" shadow="never">
     <div class="check-history-section">
-      <h3 class="font-bold text-lg mb-4 mt-0">{{ t("monitor.history") }}</h3>
+      <h3 class="history-title">{{ t("monitor.history") }}</h3>
 
       <!-- Uptime bars -->
       <div class="history-bars-large">
@@ -17,47 +17,41 @@
         </template>
       </div>
       <div v-if="history.length > 0" class="bar-legend">
-        <span class="text-xs text-base-content/40">{{
-          t("monitor.previousCount", { count: barData.length })
-        }}</span>
-        <span class="text-xs text-base-content/40">{{ t("monitor.latest") }}</span>
+        <span>{{ t("monitor.previousCount", { count: barData.length }) }}</span>
+        <span>{{ t("monitor.latest") }}</span>
       </div>
 
-      <!-- Events list -->
-      <div class="mt-6 space-y-2">
+      <div class="event-list">
         <div v-for="check in history" :key="check.id" class="event-row">
-          <div class="flex items-center gap-3 min-w-0 flex-1">
+          <div class="event-main">
             <span class="event-dot" :class="check.isUp ? 'dot-up' : 'dot-down'"></span>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium text-sm">
+            <div class="event-body">
+              <div class="event-meta">
+                <span class="event-status">
                   {{ check.isUp ? t("status.up") : t("status.down") }}
                 </span>
-                <span v-if="check.statusCode" class="text-xs font-mono text-base-content/50">
+                <span v-if="check.statusCode" class="event-code">
                   HTTP {{ check.statusCode }}
                 </span>
-                <span
-                  v-if="check.responseTime !== null"
-                  class="text-xs font-mono text-base-content/50"
-                >
+                <span v-if="check.responseTime !== null" class="event-code">
                   {{ check.responseTime }}ms
                 </span>
               </div>
               <div
                 v-if="check.errorMessage"
-                class="text-xs text-error mt-0.5"
-                :class="isExpanded(check.id) ? '' : 'line-clamp-1'"
+                class="event-error"
+                :class="isExpanded(check.id) ? '' : 'event-error-clamped'"
               >
                 {{ check.errorMessage }}
               </div>
             </div>
           </div>
-          <div class="text-xs text-base-content/40 shrink-0">
+          <div class="event-time">
             {{ formatDate(check.checkedAt) }}
           </div>
           <ElButton
             v-if="shouldShowToggle(check.errorMessage)"
-            class="shrink-0 ml-2"
+            class="event-toggle"
             link
             size="small"
             type="primary"
@@ -66,7 +60,7 @@
             {{ isExpanded(check.id) ? t("common.close") : t("common.details") }}
           </ElButton>
         </div>
-        <div v-if="history.length === 0" class="text-center text-base-content/50 py-8">
+        <div v-if="history.length === 0" class="history-empty">
           {{ t("monitor.noHistory") }}
         </div>
       </div>
@@ -116,9 +110,13 @@ function shouldShowToggle(errorMessage: string | null) {
 
 <style scoped>
 .check-history-section {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
+  min-width: 0;
+}
+
+.history-title {
+  margin: 0 0 1rem;
+  font-size: 1.125rem;
+  font-weight: 700;
 }
 
 .history-bars-large {
@@ -154,6 +152,15 @@ function shouldShowToggle(errorMessage: string | null) {
   display: flex;
   justify-content: space-between;
   margin-top: 0.25rem;
+  color: var(--app-text-subtle);
+  font-size: 0.75rem;
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
 }
 
 .event-row {
@@ -168,6 +175,69 @@ function shouldShowToggle(errorMessage: string | null) {
 
 .event-row:hover {
   background: var(--surface-hover);
+}
+
+.event-main,
+.event-meta {
+  display: flex;
+  align-items: center;
+}
+
+.event-main {
+  flex: 1;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+.event-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-meta {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.event-status {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.event-code {
+  color: var(--app-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+}
+
+.event-error {
+  margin-top: 0.125rem;
+  color: var(--el-color-danger);
+  font-size: 0.75rem;
+}
+
+.event-error-clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.event-time {
+  flex-shrink: 0;
+  color: var(--app-text-subtle);
+  font-size: 0.75rem;
+}
+
+.event-toggle {
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.history-empty {
+  padding: 2rem 0;
+  color: var(--app-text-muted);
+  text-align: center;
 }
 
 .event-dot {
