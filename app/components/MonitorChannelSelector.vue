@@ -1,5 +1,5 @@
 <template>
-  <AppCard class="mb-6">
+  <ElCard :body-style="{ padding: '1rem' }" class="mb-6" shadow="never">
     <h3 class="font-bold text-lg m-0 mb-3">通知チャンネル</h3>
 
     <div v-if="allChannels.length === 0" class="text-sm text-base-content/50">
@@ -12,19 +12,14 @@
         :key="ch.id"
         class="flex items-center gap-3 p-2 rounded-lg hover:bg-base-200 cursor-pointer"
       >
-        <input
-          type="checkbox"
-          class="checkbox checkbox-sm checkbox-primary"
-          :checked="selectedIds.has(ch.id)"
-          @change="toggle(ch.id)"
-        />
-        <AppBadge :variant="ch.type === 'discord' ? 'primary' : 'secondary'" size="sm">
+        <ElCheckbox :model-value="selectedIds.has(ch.id)" @change="toggle(ch.id)" />
+        <ElTag :type="ch.type === 'discord' ? 'primary' : 'info'" effect="light" round size="small">
           {{ ch.type }}
-        </AppBadge>
+        </ElTag>
         <span class="text-sm">{{ ch.name }}</span>
       </label>
     </div>
-  </AppCard>
+  </ElCard>
 </template>
 
 <script lang="ts" setup>

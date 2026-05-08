@@ -1,70 +1,75 @@
 <template>
-  <div class="check-history-section bg-base-100">
-    <h3 class="font-bold text-lg mb-4 mt-0">チェック履歴</h3>
+  <ElCard :body-style="{ padding: 0 }" class="bg-base-100" shadow="never">
+    <div class="check-history-section">
+      <h3 class="font-bold text-lg mb-4 mt-0">チェック履歴</h3>
 
-    <!-- Uptime bars -->
-    <div class="history-bars-large">
-      <div
-        v-for="(check, i) in barData"
-        :key="i"
-        class="history-bar-lg tooltip"
-        :class="check.isUp ? 'bar-up' : 'bar-down'"
-        :data-tip="tooltip(check)"
-      ></div>
-      <template v-if="history.length === 0">
-        <div v-for="i in 90" :key="'empty-' + i" class="history-bar-lg bar-empty"></div>
-      </template>
-    </div>
-    <div v-if="history.length > 0" class="bar-legend">
-      <span class="text-xs text-base-content/40">{{ barData.length }}回前</span>
-      <span class="text-xs text-base-content/40">最新</span>
-    </div>
+      <!-- Uptime bars -->
+      <div class="history-bars-large">
+        <div
+          v-for="(check, i) in barData"
+          :key="i"
+          class="history-bar-lg"
+          :class="check.isUp ? 'bar-up' : 'bar-down'"
+          :title="tooltip(check)"
+        ></div>
+        <template v-if="history.length === 0">
+          <div v-for="i in 90" :key="'empty-' + i" class="history-bar-lg bar-empty"></div>
+        </template>
+      </div>
+      <div v-if="history.length > 0" class="bar-legend">
+        <span class="text-xs text-base-content/40">{{ barData.length }}回前</span>
+        <span class="text-xs text-base-content/40">最新</span>
+      </div>
 
-    <!-- Events list -->
-    <div class="mt-6 space-y-2">
-      <div v-for="check in history" :key="check.id" class="event-row">
-        <div class="flex items-center gap-3 min-w-0 flex-1">
-          <span class="event-dot" :class="check.isUp ? 'dot-up' : 'dot-down'"></span>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium text-sm">
-                {{ check.isUp ? "稼働中" : "停止" }}
-              </span>
-              <span v-if="check.statusCode" class="text-xs font-mono text-base-content/50">
-                HTTP {{ check.statusCode }}
-              </span>
-              <span
-                v-if="check.responseTime !== null"
-                class="text-xs font-mono text-base-content/50"
+      <!-- Events list -->
+      <div class="mt-6 space-y-2">
+        <div v-for="check in history" :key="check.id" class="event-row">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <span class="event-dot" :class="check.isUp ? 'dot-up' : 'dot-down'"></span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium text-sm">
+                  {{ check.isUp ? "稼働中" : "停止" }}
+                </span>
+                <span v-if="check.statusCode" class="text-xs font-mono text-base-content/50">
+                  HTTP {{ check.statusCode }}
+                </span>
+                <span
+                  v-if="check.responseTime !== null"
+                  class="text-xs font-mono text-base-content/50"
+                >
+                  {{ check.responseTime }}ms
+                </span>
+              </div>
+              <div
+                v-if="check.errorMessage"
+                class="text-xs text-error mt-0.5"
+                :class="isExpanded(check.id) ? '' : 'line-clamp-1'"
               >
-                {{ check.responseTime }}ms
-              </span>
-            </div>
-            <div
-              v-if="check.errorMessage"
-              class="text-xs text-error mt-0.5"
-              :class="isExpanded(check.id) ? '' : 'line-clamp-1'"
-            >
-              {{ check.errorMessage }}
+                {{ check.errorMessage }}
+              </div>
             </div>
           </div>
+          <div class="text-xs text-base-content/40 shrink-0">
+            {{ formatDate(check.checkedAt) }}
+          </div>
+          <ElButton
+            v-if="shouldShowToggle(check.errorMessage)"
+            class="shrink-0 ml-2"
+            link
+            size="small"
+            type="primary"
+            @click.stop="toggleExpanded(check.id)"
+          >
+            {{ isExpanded(check.id) ? "閉じる" : "詳細" }}
+          </ElButton>
         </div>
-        <div class="text-xs text-base-content/40 shrink-0">
-          {{ formatDate(check.checkedAt) }}
+        <div v-if="history.length === 0" class="text-center text-base-content/50 py-8">
+          チェック履歴がありません
         </div>
-        <button
-          v-if="shouldShowToggle(check.errorMessage)"
-          class="text-xs text-primary shrink-0 ml-2 hover:underline"
-          @click.stop="toggleExpanded(check.id)"
-        >
-          {{ isExpanded(check.id) ? "閉じる" : "詳細" }}
-        </button>
-      </div>
-      <div v-if="history.length === 0" class="text-center text-base-content/50 py-8">
-        チェック履歴がありません
       </div>
     </div>
-  </div>
+  </ElCard>
 </template>
 
 <script lang="ts" setup>

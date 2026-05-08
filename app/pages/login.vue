@@ -1,44 +1,32 @@
 <template>
   <div class="flex min-h-[70vh] items-center justify-center">
-    <div class="card w-full max-w-sm bg-base-100 shadow-lg slide-up">
-      <div class="card-body">
+    <ElCard :body-style="{ padding: 0 }" class="w-full max-w-sm slide-up" shadow="always">
+      <div class="p-6">
         <div class="flex flex-col items-center gap-3 mb-2">
           <span
             class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-content text-lg font-black"
           >
             HC
           </span>
-          <h2 class="card-title text-xl m-0">管理者ログイン</h2>
+          <h2 class="text-xl font-bold m-0">管理者ログイン</h2>
           <p class="text-sm text-base-content/50 m-0">パスワードを入力してください</p>
         </div>
 
         <form @submit.prevent="handleLogin">
-          <div class="form-control mt-4">
-            <label class="floating-label w-full">
-              <span>パスワード</span>
-              <input
-                id="password"
-                v-model="password"
-                type="password"
-                placeholder="パスワード"
-                class="input input-bordered w-full"
-                :class="{ 'input-error': error }"
-                required
-              />
-            </label>
-          </div>
+          <ElFormItem class="mt-4" :error="error" label="パスワード" required>
+            <ElInput id="password" v-model="password" type="password" required />
+          </ElFormItem>
 
           <div v-if="error" class="mt-3 text-sm text-error text-center">{{ error }}</div>
 
-          <div class="form-control mt-6">
-            <button type="submit" class="btn btn-primary w-full" :disabled="loading">
-              <span v-if="loading" class="loading loading-spinner loading-sm"></span>
+          <div class="mt-6">
+            <ElButton native-type="submit" class="w-full" type="primary" :loading="loading">
               ログイン
-            </button>
+            </ElButton>
           </div>
         </form>
       </div>
-    </div>
+    </ElCard>
   </div>
 </template>
 

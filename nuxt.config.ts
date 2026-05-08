@@ -2,7 +2,11 @@ import { defineNuxtConfig } from "nuxt/config";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
-  css: ["~/assets/css/tailwind.css"],
+  css: [
+    "element-plus/dist/index.css",
+    "element-plus/theme-chalk/dark/css-vars.css",
+    "~/assets/css/tailwind.css",
+  ],
 
   vite: {
     plugins: [tailwindcss()],

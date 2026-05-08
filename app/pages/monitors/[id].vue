@@ -8,7 +8,7 @@
     </div>
 
     <div v-if="!monitor" class="space-y-4">
-      <AppCard>
+      <ElCard shadow="never">
         <div class="animate-pulse space-y-3">
           <div class="h-6 bg-base-content/10 rounded w-1/3"></div>
           <div class="h-4 bg-base-content/10 rounded w-2/3"></div>
@@ -16,7 +16,7 @@
             <div v-for="i in 4" :key="i" class="h-12 bg-base-content/10 rounded"></div>
           </div>
         </div>
-      </AppCard>
+      </ElCard>
     </div>
 
     <template v-else>
@@ -50,6 +50,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { MonitorWithStatus, CheckResult } from "~/components/types";
 
 const route = useRoute();
@@ -83,10 +84,20 @@ async function checkNow() {
 }
 
 async function confirmDelete() {
-  if (confirm(`「${monitor.value?.name}」を削除しますか？`)) {
-    await client.monitor.delete({ id: monitorId });
-    navigateTo("/");
+  try {
+    await ElMessageBox.confirm(`「${monitor.value?.name}」を削除しますか？`, "削除確認", {
+      confirmButtonText: "削除",
+      cancelButtonText: "キャンセル",
+      type: "warning",
+    });
+  } catch (e) {
+    if (e !== "cancel" && e !== "close") {
+      ElMessage.error(e instanceof Error ? e.message : String(e));
+    }
+    return;
   }
+  await client.monitor.delete({ id: monitorId });
+  navigateTo("/");
 }
 
 async function duplicateMonitor() {
@@ -104,7 +115,7 @@ async function duplicateMonitor() {
     });
     navigateTo(`/monitors/${created.id}`);
   } catch (e) {
-    alert(`複製に失敗しました: ${e instanceof Error ? e.message : "不明なエラー"}`);
+    ElMessage.error(`複製に失敗しました: ${e instanceof Error ? e.message : "不明なエラー"}`);
   }
 }
 

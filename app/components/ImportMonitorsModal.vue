@@ -1,21 +1,30 @@
 <template>
-  <AppModal :open="open" title="モニターインポート" max-width="lg" @close="handleClose">
+  <ElDialog
+    :model-value="open"
+    title="モニターインポート"
+    width="42rem"
+    align-center
+    @close="handleClose"
+  >
     <div v-if="!result" class="space-y-4">
-      <div class="form-control">
-        <label class="label">
-          <span class="label-text">JSONファイル</span>
-        </label>
-        <input
-          ref="fileInput"
-          type="file"
+      <div>
+        <p class="mb-2 text-sm font-medium">JSONファイル</p>
+        <ElUpload
+          ref="uploadRef"
           accept=".json,application/json"
-          class="file-input file-input-bordered w-full"
+          :auto-upload="false"
+          :limit="1"
           @change="handleFileChange"
-        />
+        >
+          <ElButton>ファイルを選択</ElButton>
+        </ElUpload>
       </div>
 
       <div class="form-control">
-        <AppToggle v-model="skipDuplicates" label="重複をスキップ（URLで判定）" />
+        <label class="inline-flex items-center gap-3"
+          ><span class="text-sm">重複をスキップ（URLで判定）</span
+          ><ElSwitch v-model="skipDuplicates"
+        /></label>
       </div>
 
       <div v-if="preview.length > 0" class="bg-base-200 rounded-lg p-4">
@@ -26,7 +35,7 @@
             :key="i"
             class="text-xs flex items-center gap-2"
           >
-            <AppBadge variant="ghost" size="sm">{{ item.method }}</AppBadge>
+            <ElTag type="info" effect="plain" round size="small">{{ item.method }}</ElTag>
             <span class="truncate">{{ item.name }}</span>
             <span class="text-base-content/50 truncate flex-1">{{ item.url }}</span>
           </div>
@@ -36,35 +45,39 @@
         </div>
       </div>
 
-      <AppAlert v-if="error" variant="error" class="text-sm">{{ error }}</AppAlert>
+      <ElAlert
+        v-if="error"
+        :closable="false"
+        class="text-sm"
+        :title="error"
+        type="error"
+        show-icon
+      />
 
-      <div class="modal-action">
-        <AppButton variant="ghost" @click="handleClose">キャンセル</AppButton>
-        <AppButton
-          variant="primary"
+      <div class="flex justify-end gap-2 mt-6">
+        <ElButton text type="primary" @click="handleClose">キャンセル</ElButton>
+        <ElButton
+          type="primary"
           :disabled="!preview.length"
           :loading="loading"
           @click="handleImport"
         >
           インポート{{ preview.length > 0 ? ` (${preview.length})` : "" }}
-        </AppButton>
+        </ElButton>
       </div>
     </div>
 
     <div v-else class="space-y-4">
       <div class="flex gap-4">
-        <div class="stat bg-success/10 rounded-lg p-3 flex-1">
-          <div class="stat-value text-success text-2xl">{{ result.imported }}</div>
-          <div class="stat-title text-xs">インポート済</div>
-        </div>
-        <div class="stat bg-warning/10 rounded-lg p-3 flex-1">
-          <div class="stat-value text-warning text-2xl">{{ result.skipped }}</div>
-          <div class="stat-title text-xs">スキップ</div>
-        </div>
-        <div class="stat bg-error/10 rounded-lg p-3 flex-1">
-          <div class="stat-value text-error text-2xl">{{ result.errors }}</div>
-          <div class="stat-title text-xs">エラー</div>
-        </div>
+        <ElCard class="flex-1" shadow="never">
+          <ElStatistic title="インポート済" :value="result.imported" />
+        </ElCard>
+        <ElCard class="flex-1" shadow="never">
+          <ElStatistic title="スキップ" :value="result.skipped" />
+        </ElCard>
+        <ElCard class="flex-1" shadow="never">
+          <ElStatistic title="エラー" :value="result.errors" />
+        </ElCard>
       </div>
 
       <div
@@ -78,9 +91,14 @@
             :key="i"
             class="text-xs flex items-center gap-2"
           >
-            <AppBadge :variant="detail.status === 'skipped' ? 'warning' : 'error'" size="sm">
+            <ElTag
+              :type="detail.status === 'skipped' ? 'warning' : 'danger'"
+              effect="light"
+              round
+              size="small"
+            >
               {{ detail.status === "skipped" ? "スキップ" : "エラー" }}
-            </AppBadge>
+            </ElTag>
             <span class="truncate">{{ detail.name }}</span>
             <span v-if="detail.message" class="text-base-content/50 truncate flex-1">
               {{ detail.message }}
@@ -89,14 +107,16 @@
         </div>
       </div>
 
-      <div class="modal-action">
-        <AppButton variant="primary" @click="handleClose">完了</AppButton>
+      <div class="flex justify-end gap-2 mt-6">
+        <ElButton type="primary" @click="handleClose">完了</ElButton>
       </div>
     </div>
-  </AppModal>
+  </ElDialog>
 </template>
 
 <script lang="ts" setup>
+import type { UploadFile, UploadInstance } from "element-plus";
+
 interface MonitorInput {
   name: string;
   url: string;
@@ -127,7 +147,7 @@ const emit = defineEmits<{
   imported: [];
 }>();
 
-const fileInput = ref<HTMLInputElement | null>(null);
+const uploadRef = ref<UploadInstance>();
 const preview = ref<MonitorInput[]>([]);
 const skipDuplicates = ref(true);
 const loading = ref(false);
@@ -148,18 +168,15 @@ function reset() {
   error.value = "";
   result.value = null;
   loading.value = false;
-  if (fileInput.value) {
-    fileInput.value.value = "";
-  }
+  uploadRef.value?.clearFiles();
 }
 
 function handleClose() {
   emit("close");
 }
 
-function handleFileChange(e: Event) {
-  const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
+function handleFileChange(uploadFile: UploadFile) {
+  const file = uploadFile.raw;
   if (!file) return;
 
   const reader = new FileReader();

@@ -13,25 +13,7 @@
     </header>
 
     <!-- Tabs -->
-    <div class="settings-tabs mb-6">
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'monitors' }"
-        @click="activeTab = 'monitors'"
-      >
-        モニター設定
-      </button>
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'channels' }"
-        @click="activeTab = 'channels'"
-      >
-        通知チャンネル
-      </button>
-      <button class="tab-btn" :class="{ active: activeTab === 'bulk' }" @click="activeTab = 'bulk'">
-        一括Webhook設定
-      </button>
-    </div>
+    <ElSegmented v-model="activeTab" :options="tabOptions" class="mb-6" />
 
     <!-- Monitor settings tab -->
     <div v-if="activeTab === 'monitors'" class="settings-layout">
@@ -41,18 +23,19 @@
           <span class="text-sm font-semibold">モニター一覧</span>
           <div class="flex items-center gap-2">
             <span class="text-xs text-base-content/40">{{ monitors.length }}件</span>
-            <AppButton variant="outline" size="xs" @click="showImportModal = true">
+            <ElButton plain size="small" type="primary" @click="showImportModal = true">
               インポート
-            </AppButton>
-            <AppButton variant="primary" size="xs" @click="startCreateMonitor"> + 追加 </AppButton>
+            </ElButton>
+            <ElButton size="small" type="primary" @click="startCreateMonitor"> + 追加 </ElButton>
           </div>
         </div>
         <div class="sidebar-list">
-          <button
+          <ElButton
             v-for="m in monitors"
             :key="m.id"
             class="sidebar-item"
             :class="{ active: monitorPaneMode === 'edit' && selectedMonitorId === m.id }"
+            text
             @click="selectMonitor(m.id)"
           >
             <span
@@ -60,7 +43,7 @@
               :class="m.lastCheck?.isUp ? 'dot-up' : m.lastCheck ? 'dot-down' : 'dot-pending'"
             ></span>
             <span class="truncate text-sm">{{ m.name }}</span>
-          </button>
+          </ElButton>
           <div v-if="monitors.length === 0" class="text-center text-sm text-base-content/40 py-8">
             モニターがありません
           </div>
@@ -87,73 +70,94 @@
               </p>
             </div>
             <div v-if="monitorPaneMode === 'edit' && selectedMonitor" class="flex gap-2">
-              <AppButton variant="outline" size="sm" @click="duplicateMonitor(selectedMonitor)">
+              <ElButton
+                plain
+                size="small"
+                type="primary"
+                @click="duplicateMonitor(selectedMonitor)"
+              >
                 複製
-              </AppButton>
-              <AppButton variant="danger" size="sm" @click="deleteMonitor(selectedMonitor)">
+              </ElButton>
+              <ElButton size="small" type="danger" @click="deleteMonitor(selectedMonitor)">
                 削除
-              </AppButton>
+              </ElButton>
             </div>
           </div>
 
-          <form @submit.prevent="saveMonitor">
+          <ElForm
+            class="aligned-form"
+            label-position="right"
+            label-width="14rem"
+            @submit.prevent="saveMonitor"
+          >
             <div class="space-y-4">
-              <AppInput v-model="editForm.name" label="名前（内部用）" required />
-              <AppInput v-model="editForm.displayName" label="表示名（権限がない時に見える名前）" />
-              <AppInput v-model="editForm.url" label="URL" type="url" required />
+              <ElFormItem label="名前（内部用）" required
+                ><ElInput v-model="editForm.name" required
+              /></ElFormItem>
+              <ElFormItem label="表示名（権限がない時に見える名前）"
+                ><ElInput v-model="editForm.displayName"
+              /></ElFormItem>
+              <ElFormItem label="URL" required
+                ><ElInput v-model="editForm.url" type="url" required
+              /></ElFormItem>
 
               <div class="grid grid-cols-2 gap-4">
-                <AppSelect v-model="editForm.method" label="メソッド" :options="methodOptions" />
-                <AppInput
-                  v-model="editForm.timeout"
-                  label="タイムアウト (秒)"
-                  type="number"
-                  required
-                  min="1"
-                  max="120"
-                />
+                <ElFormItem label="メソッド"
+                  ><ElSelect v-model="editForm.method" class="w-full"
+                    ><ElOption
+                      v-for="option in methodOptions"
+                      :key="option.value"
+                      :label="option.label"
+                      :value="option.value" /></ElSelect
+                ></ElFormItem>
+                <ElFormItem label="タイムアウト (秒)" required
+                  ><ElInput v-model="editForm.timeout" type="number" required min="1" max="120"
+                /></ElFormItem>
               </div>
 
-              <AppInput
-                v-model="editForm.expectedStatus"
-                label="期待ステータス"
-                type="number"
-                min="100"
-                max="599"
-              />
+              <ElFormItem label="期待ステータス"
+                ><ElInput v-model="editForm.expectedStatus" type="number" min="100" max="599"
+              /></ElFormItem>
 
               <div v-if="editForm.method === 'POST'">
                 <div class="mb-4">
-                  <AppSelect
-                    :model-value="selectedContentType"
-                    label="Content-Type"
-                    :options="contentTypeOptions"
-                    @update:model-value="handleContentTypeChange"
-                  />
+                  <ElFormItem label="Content-Type"
+                    ><ElSelect
+                      :model-value="selectedContentType"
+                      class="w-full"
+                      @update:model-value="handleContentTypeChange"
+                      ><ElOption
+                        v-for="option in contentTypeOptions"
+                        :key="option.value"
+                        :label="option.label"
+                        :value="option.value" /></ElSelect
+                  ></ElFormItem>
                 </div>
 
-                <AppCollapsible title="リクエストボディ">
-                  <AppTextarea
-                    v-model="editForm.body"
-                    label="ボディ"
-                    :rows="4"
-                    placeholder='{"key": "value"}'
-                    monospace
-                  />
-                </AppCollapsible>
+                <ElCollapse
+                  ><ElCollapseItem title="リクエストボディ"
+                    ><ElFormItem label="ボディ"
+                      ><ElInput
+                        v-model="editForm.body"
+                        :rows="4"
+                        placeholder='{"key": "value"}'
+                        type="textarea" /></ElFormItem></ElCollapseItem
+                ></ElCollapse>
               </div>
 
-              <AppCollapsible title="カスタムヘッダー">
-                <AppTextarea
-                  v-model="editForm.headers"
-                  label="ヘッダー"
-                  :rows="3"
-                  placeholder='{"Authorization": "Bearer token"}'
-                  monospace
-                />
-              </AppCollapsible>
+              <ElCollapse
+                ><ElCollapseItem title="カスタムヘッダー"
+                  ><ElFormItem label="ヘッダー"
+                    ><ElInput
+                      v-model="editForm.headers"
+                      :rows="3"
+                      placeholder='{"Authorization": "Bearer token"}'
+                      type="textarea" /></ElFormItem></ElCollapseItem
+              ></ElCollapse>
 
-              <AppToggle v-if="monitorPaneMode === 'edit'" v-model="editForm.active" label="有効" />
+              <label v-if="monitorPaneMode === 'edit'" class="inline-flex items-center gap-3"
+                ><span class="text-sm">有効</span><ElSwitch v-model="editForm.active"
+              /></label>
 
               <!-- Channel selector inline -->
               <div v-if="monitorPaneMode === 'edit'" class="settings-section">
@@ -163,32 +167,40 @@
                 </div>
                 <div class="space-y-1">
                   <label v-for="ch in channels" :key="ch.id" class="channel-row">
-                    <input
-                      type="checkbox"
-                      class="checkbox checkbox-sm checkbox-primary"
-                      :checked="editChannelIds.has(ch.id)"
+                    <ElCheckbox
+                      :model-value="editChannelIds.has(ch.id)"
                       @change="toggleChannel(ch.id)"
                     />
-                    <AppBadge :variant="ch.type === 'discord' ? 'primary' : 'secondary'" size="sm">
+                    <ElTag
+                      :type="ch.type === 'discord' ? 'primary' : 'info'"
+                      effect="light"
+                      round
+                      size="small"
+                    >
                       {{ ch.type }}
-                    </AppBadge>
+                    </ElTag>
                     <span class="text-sm">{{ ch.name }}</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            <AppAlert v-if="saveError" variant="error" class="text-sm mt-4">{{
-              saveError
-            }}</AppAlert>
+            <ElAlert
+              v-if="saveError"
+              :closable="false"
+              class="text-sm mt-4"
+              :title="saveError"
+              type="error"
+              show-icon
+            />
 
             <div class="flex justify-end gap-2 mt-6">
-              <AppButton variant="ghost" @click="resetMonitorPane">キャンセル</AppButton>
-              <AppButton type="submit" variant="primary" :loading="saving">
+              <ElButton text type="primary" @click="resetMonitorPane">キャンセル</ElButton>
+              <ElButton native-type="submit" type="primary" :loading="saving">
                 {{ monitorPaneMode === "create" ? "作成" : "保存" }}
-              </AppButton>
+              </ElButton>
             </div>
-          </form>
+          </ElForm>
         </template>
       </div>
     </div>
@@ -200,7 +212,7 @@
 
     <!-- Bulk webhook assignment tab -->
     <div v-if="activeTab === 'bulk'" class="bulk-section">
-      <div class="settings-card bg-base-100">
+      <ElCard :body-style="{ padding: 0 }" class="settings-card bg-base-100" shadow="never">
         <h2 class="text-lg font-bold mb-4">一括Webhook割当</h2>
         <p class="text-sm text-base-content/50 mb-4">
           複数のモニターに対して通知チャンネルを一括で設定できます。
@@ -214,15 +226,18 @@
           </div>
           <div class="space-y-1">
             <label v-for="ch in channels" :key="ch.id" class="channel-row">
-              <input
-                type="checkbox"
-                class="checkbox checkbox-sm checkbox-primary"
-                :checked="bulkChannelIds.has(ch.id)"
+              <ElCheckbox
+                :model-value="bulkChannelIds.has(ch.id)"
                 @change="toggleBulkChannel(ch.id)"
               />
-              <AppBadge :variant="ch.type === 'discord' ? 'primary' : 'secondary'" size="sm">
+              <ElTag
+                :type="ch.type === 'discord' ? 'primary' : 'info'"
+                effect="light"
+                round
+                size="small"
+              >
                 {{ ch.type }}
-              </AppBadge>
+              </ElTag>
               <span class="text-sm">{{ ch.name }}</span>
             </label>
           </div>
@@ -233,20 +248,18 @@
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-sm font-semibold">対象モニター</h3>
             <div class="flex gap-2">
-              <button class="text-xs text-primary hover:underline" @click="selectAllMonitors">
+              <ElButton link size="small" type="primary" @click="selectAllMonitors">
                 全選択
-              </button>
-              <button class="text-xs text-primary hover:underline" @click="deselectAllMonitors">
+              </ElButton>
+              <ElButton link size="small" type="primary" @click="deselectAllMonitors">
                 全解除
-              </button>
+              </ElButton>
             </div>
           </div>
           <div class="space-y-1 max-h-64 overflow-y-auto">
             <label v-for="m in monitors" :key="m.id" class="channel-row">
-              <input
-                type="checkbox"
-                class="checkbox checkbox-sm"
-                :checked="bulkMonitorIds.has(m.id)"
+              <ElCheckbox
+                :model-value="bulkMonitorIds.has(m.id)"
                 @change="toggleBulkMonitor(m.id)"
               />
               <span class="text-sm">{{ m.name }}</span>
@@ -256,22 +269,34 @@
 
         <!-- Bulk mode -->
         <div class="mb-6">
-          <AppSelect v-model="bulkMode" label="動作" :options="bulkModeOptions" />
+          <ElFormItem label="動作"
+            ><ElSelect v-model="bulkMode" class="w-full"
+              ><ElOption
+                v-for="option in bulkModeOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value" /></ElSelect
+          ></ElFormItem>
         </div>
 
-        <AppAlert v-if="bulkResult" :variant="bulkResultVariant" class="text-sm mb-4">
-          {{ bulkResult }}
-        </AppAlert>
+        <ElAlert
+          v-if="bulkResult"
+          :closable="false"
+          class="text-sm mb-4"
+          :title="bulkResult"
+          :type="bulkResultVariant === 'error' ? 'error' : 'success'"
+          show-icon
+        />
 
-        <AppButton
-          variant="primary"
+        <ElButton
+          type="primary"
           :loading="bulkSaving"
           :disabled="bulkChannelIds.size === 0 || bulkMonitorIds.size === 0"
           @click="applyBulkChannels"
         >
           {{ bulkMonitorIds.size }}件のモニターに適用
-        </AppButton>
-      </div>
+        </ElButton>
+      </ElCard>
     </div>
 
     <ImportMonitorsModal
@@ -283,6 +308,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { MonitorWithStatus } from "~/components/types";
 
 definePageMeta({ middleware: "auth" });
@@ -344,6 +370,12 @@ const contentTypeOptions = [
 const bulkModeOptions = [
   { value: "replace", label: "置換（既存を上書き）" },
   { value: "add", label: "追加（既存に追加）" },
+];
+
+const tabOptions = [
+  { value: "monitors", label: "モニター設定" },
+  { value: "channels", label: "通知チャンネル" },
+  { value: "bulk", label: "一括Webhook設定" },
 ];
 
 const selectedMonitor = computed(
@@ -475,12 +507,23 @@ async function duplicateMonitor(m: MonitorWithStatus) {
     await loadMonitors();
     selectMonitor(created.id);
   } catch (e) {
-    alert(`複製に失敗しました: ${e instanceof Error ? e.message : "不明なエラー"}`);
+    ElMessage.error(`複製に失敗しました: ${e instanceof Error ? e.message : "不明なエラー"}`);
   }
 }
 
 async function deleteMonitor(m: MonitorWithStatus) {
-  if (!confirm(`「${m.name}」を削除しますか？`)) return;
+  try {
+    await ElMessageBox.confirm(`「${m.name}」を削除しますか？`, "削除確認", {
+      confirmButtonText: "削除",
+      cancelButtonText: "キャンセル",
+      type: "warning",
+    });
+  } catch (e) {
+    if (e !== "cancel" && e !== "close") {
+      ElMessage.error(e instanceof Error ? e.message : String(e));
+    }
+    return;
+  }
   await client.monitor.delete({ id: m.id });
   resetMonitorPane();
   await loadMonitors();
@@ -559,12 +602,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.settings-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
 .settings-header {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-subtle);
@@ -594,30 +631,6 @@ onMounted(async () => {
 .home-link:hover {
   background: var(--surface-hover);
   opacity: 0.9;
-}
-
-.tab-btn {
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border: none;
-  background: none;
-  color: var(--color-base-content, gray);
-  opacity: 0.5;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition:
-    opacity 0.15s,
-    border-color 0.15s;
-}
-
-.tab-btn:hover {
-  opacity: 0.8;
-}
-
-.tab-btn.active {
-  opacity: 1;
-  border-bottom-color: var(--status-up);
 }
 
 .settings-layout {
@@ -658,6 +671,9 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
+  height: auto;
+  justify-content: flex-start;
+  margin-left: 0;
   padding: 0.625rem 1rem;
   border: none;
   background: none;
@@ -665,6 +681,15 @@ onMounted(async () => {
   text-align: left;
   transition: background 0.1s;
   border-bottom: 1px solid var(--border-subtle);
+  white-space: normal;
+}
+
+.sidebar-item :deep(> span) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .sidebar-item:last-child {
@@ -708,6 +733,34 @@ onMounted(async () => {
   padding: 0.75rem;
   background: var(--surface-hover);
   border-radius: 0.5rem;
+}
+
+.aligned-form :deep(.el-form-item__label) {
+  justify-content: flex-end;
+}
+
+.aligned-form :deep(.el-form-item__content) {
+  min-width: 0;
+}
+
+.aligned-form :deep(.el-collapse-item__header) {
+  padding: 0 1rem;
+}
+
+.aligned-form :deep(.el-collapse-item__content) {
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .aligned-form :deep(.el-form-item) {
+    display: block;
+  }
+
+  .aligned-form :deep(.el-form-item__label) {
+    justify-content: flex-start;
+    width: auto !important;
+    margin-bottom: 0.375rem;
+  }
 }
 
 .channel-row {

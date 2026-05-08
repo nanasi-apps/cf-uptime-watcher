@@ -1,45 +1,47 @@
 <template>
-  <div class="monitor-row bg-base-100" @click="$emit('click')">
-    <div class="monitor-row-header">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="status-dot" :class="dotClass"></span>
-        <span class="font-semibold truncate">{{ monitor.name }}</span>
+  <ElCard :body-style="{ padding: 0 }" class="bg-base-100" shadow="hover" @click="$emit('click')">
+    <div class="monitor-row">
+      <div class="monitor-row-header">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="status-dot" :class="dotClass"></span>
+          <span class="font-semibold truncate">{{ monitor.name }}</span>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span v-if="monitor.lastCheck" class="text-xs text-base-content/50 hidden sm:inline">
+            {{ monitor.lastCheck.responseTime }}ms
+          </span>
+          <span
+            v-if="monitor.uptimePercent !== null"
+            class="uptime-pct font-mono text-sm font-semibold"
+            :class="uptimeColorClass"
+          >
+            {{ monitor.uptimePercent }}%
+          </span>
+          <ElTag :type="tagType" effect="light" round size="small">
+            {{ statusText }}
+          </ElTag>
+        </div>
       </div>
-      <div class="flex items-center gap-3 shrink-0">
-        <span v-if="monitor.lastCheck" class="text-xs text-base-content/50 hidden sm:inline">
-          {{ monitor.lastCheck.responseTime }}ms
-        </span>
-        <span
-          v-if="monitor.uptimePercent !== null"
-          class="uptime-pct font-mono text-sm font-semibold"
-          :class="uptimeColorClass"
-        >
-          {{ monitor.uptimePercent }}%
-        </span>
-        <span class="status-label" :class="statusLabelClass">
-          {{ statusText }}
-        </span>
+      <div class="history-bars">
+        <template v-if="bars.length > 0">
+          <div
+            v-for="(bar, i) in bars"
+            :key="i"
+            class="history-bar"
+            :class="bar.isUp ? 'bar-up' : 'bar-down'"
+            :title="barTooltip(bar)"
+          ></div>
+        </template>
+        <template v-else>
+          <div v-for="i in 45" :key="'empty-' + i" class="history-bar bar-empty"></div>
+        </template>
+      </div>
+      <div class="bar-legend">
+        <span class="text-xs text-base-content/40">{{ barsAgo }}</span>
+        <span class="text-xs text-base-content/40">今</span>
       </div>
     </div>
-    <div class="history-bars">
-      <template v-if="bars.length > 0">
-        <div
-          v-for="(bar, i) in bars"
-          :key="i"
-          class="history-bar tooltip"
-          :class="bar.isUp ? 'bar-up' : 'bar-down'"
-          :data-tip="barTooltip(bar)"
-        ></div>
-      </template>
-      <template v-else>
-        <div v-for="i in 45" :key="'empty-' + i" class="history-bar bar-empty"></div>
-      </template>
-    </div>
-    <div class="bar-legend">
-      <span class="text-xs text-base-content/40">{{ barsAgo }}</span>
-      <span class="text-xs text-base-content/40">今</span>
-    </div>
-  </div>
+  </ElCard>
 </template>
 
 <script lang="ts" setup>
@@ -71,11 +73,11 @@ const statusText = computed(() => {
   return map[status.value];
 });
 
-const statusLabelClass = computed(() => {
-  const map: Record<string, string> = {
-    up: "label-up",
-    down: "label-down",
-    pending: "label-pending",
+const tagType = computed(() => {
+  const map: Record<string, "success" | "danger" | "info"> = {
+    up: "success",
+    down: "danger",
+    pending: "info",
   };
   return map[status.value];
 });
@@ -105,6 +107,9 @@ function barTooltip(check: CheckResult) {
   border-radius: 0.75rem;
   padding: 1rem 1.25rem;
   cursor: pointer;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
   transition:
     box-shadow 0.15s,
     border-color 0.15s;
@@ -141,38 +146,19 @@ function barTooltip(check: CheckResult) {
   opacity: 0.3;
 }
 
-.status-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  white-space: nowrap;
-}
-
-.label-up {
-  background-color: var(--status-up-bg);
-  color: var(--status-up-fg);
-}
-.label-down {
-  background-color: var(--status-down-bg);
-  color: var(--status-down-fg);
-}
-.label-pending {
-  background-color: var(--color-base-200);
-  color: var(--color-base-content, gray);
-  opacity: 0.7;
-}
-
 .history-bars {
   display: flex;
   gap: 1.5px;
   height: 2rem;
   align-items: stretch;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .history-bar {
   flex: 1;
-  min-width: 2px;
+  min-width: 0;
   border-radius: 1.5px;
   transition: opacity 0.1s;
 }

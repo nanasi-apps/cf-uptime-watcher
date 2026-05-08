@@ -1,103 +1,133 @@
 <template>
-  <AppModal :open="open" title="モニター追加" @close="$emit('close')">
-    <form @submit.prevent="handleSubmit">
+  <ElDialog
+    :model-value="open"
+    title="モニター追加"
+    width="32rem"
+    align-center
+    @close="$emit('close')"
+  >
+    <ElForm
+      class="aligned-form"
+      label-position="right"
+      label-width="12rem"
+      @submit.prevent="handleSubmit"
+    >
       <!-- Name & URL -->
       <div class="mb-4">
-        <AppInput v-model="form.name" label="名前（内部用）" placeholder="My API" required />
+        <ElFormItem label="名前（内部用）" required
+          ><ElInput v-model="form.name" placeholder="My API" required
+        /></ElFormItem>
       </div>
 
       <div class="mb-4">
-        <AppInput
-          v-model="form.displayName"
-          label="表示名（権限がない時に見える名前）"
-          placeholder="My Service Monitor"
-        />
+        <ElFormItem label="表示名（権限がない時に見える名前）"
+          ><ElInput v-model="form.displayName" placeholder="My Service Monitor"
+        /></ElFormItem>
       </div>
 
       <div class="mb-4">
-        <AppInput
-          v-model="form.url"
-          label="URL"
-          type="url"
-          placeholder="https://api.example.com/health"
-          required
-        />
+        <ElFormItem label="URL" required
+          ><ElInput
+            v-model="form.url"
+            type="url"
+            placeholder="https://api.example.com/health"
+            required
+        /></ElFormItem>
       </div>
 
       <!-- Method & Timeout -->
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <AppSelect v-model="form.method" label="メソッド" :options="methodOptions" />
+        <ElFormItem label="メソッド"
+          ><ElSelect v-model="form.method" class="w-full"
+            ><ElOption
+              v-for="option in methodOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value" /></ElSelect
+        ></ElFormItem>
 
-        <AppInput
-          v-model="form.timeout"
-          label="タイムアウト (秒)"
-          type="number"
-          placeholder="30"
-          required
-          min="1"
-          max="120"
-        />
+        <ElFormItem label="タイムアウト (秒)" required
+          ><ElInput
+            v-model="form.timeout"
+            type="number"
+            placeholder="30"
+            required
+            min="1"
+            max="120"
+        /></ElFormItem>
       </div>
 
       <!-- Expected Status -->
       <div class="mb-4">
-        <AppInput
-          v-model="form.expectedStatus"
-          label="期待ステータス"
-          type="number"
-          placeholder="200"
-          min="100"
-          max="599"
-        />
+        <ElFormItem label="期待ステータス"
+          ><ElInput
+            v-model="form.expectedStatus"
+            type="number"
+            placeholder="200"
+            min="100"
+            max="599"
+        /></ElFormItem>
       </div>
 
       <!-- POST body (conditional) -->
       <div v-if="form.method === 'POST'">
         <div class="mb-4">
-          <AppSelect
-            :model-value="selectedContentType"
-            label="Content-Type"
-            :options="contentTypeOptions"
-            @update:model-value="handleContentTypeChange"
-          />
+          <ElFormItem label="Content-Type"
+            ><ElSelect
+              :model-value="selectedContentType"
+              class="w-full"
+              @update:model-value="handleContentTypeChange"
+              ><ElOption
+                v-for="option in contentTypeOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value" /></ElSelect
+          ></ElFormItem>
         </div>
 
         <div class="mb-4">
-          <AppCollapsible title="リクエストボディ">
-            <AppTextarea
-              v-model="form.body"
-              label="ボディ"
-              :rows="4"
-              placeholder='{"key": "value"}'
-              monospace
-            />
-          </AppCollapsible>
+          <ElCollapse
+            ><ElCollapseItem title="リクエストボディ"
+              ><ElFormItem label="ボディ"
+                ><ElInput
+                  v-model="form.body"
+                  :rows="4"
+                  placeholder='{"key": "value"}'
+                  type="textarea" /></ElFormItem></ElCollapseItem
+          ></ElCollapse>
         </div>
       </div>
 
       <!-- Headers (collapsible) -->
       <div class="mb-4">
-        <AppCollapsible title="カスタムヘッダー">
-          <AppTextarea
-            v-model="form.headers"
-            label="ヘッダー"
-            :rows="3"
-            placeholder='{"Authorization": "Bearer token"}'
-            monospace
-          />
-        </AppCollapsible>
+        <ElCollapse
+          ><ElCollapseItem title="カスタムヘッダー"
+            ><ElFormItem label="ヘッダー"
+              ><ElInput
+                v-model="form.headers"
+                :rows="3"
+                placeholder='{"Authorization": "Bearer token"}'
+                type="textarea" /></ElFormItem></ElCollapseItem
+        ></ElCollapse>
       </div>
 
       <!-- Error -->
-      <AppAlert v-if="error" variant="error" class="text-sm mb-4">{{ error }}</AppAlert>
+      <ElAlert
+        v-if="error"
+        :closable="false"
+        class="text-sm mb-4"
+        :title="error"
+        type="error"
+        show-icon
+      />
 
       <!-- Actions -->
-      <div class="modal-action">
-        <AppButton variant="ghost" @click="$emit('close')">キャンセル</AppButton>
-        <AppButton type="submit" variant="primary" :loading="loading">作成</AppButton>
+      <div class="flex justify-end gap-2 mt-6">
+        <ElButton text type="primary" @click="$emit('close')">キャンセル</ElButton>
+        <ElButton native-type="submit" type="primary" :loading="loading">作成</ElButton>
       </div>
-    </form>
-  </AppModal>
+    </ElForm>
+  </ElDialog>
 </template>
 
 <script lang="ts" setup>
@@ -174,3 +204,21 @@ async function handleSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.aligned-form :deep(.el-form-item__label) {
+  justify-content: flex-end;
+}
+
+.aligned-form :deep(.el-form-item__content) {
+  min-width: 0;
+}
+
+.aligned-form :deep(.el-collapse-item__header) {
+  padding: 0 1rem;
+}
+
+.aligned-form :deep(.el-collapse-item__content) {
+  padding: 1rem;
+}
+</style>

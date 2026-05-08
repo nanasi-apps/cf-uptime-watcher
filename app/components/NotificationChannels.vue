@@ -5,31 +5,37 @@
         <span class="text-sm font-semibold">Webhook一覧</span>
         <div class="flex items-center gap-2">
           <span class="text-xs text-base-content/40">{{ channels.length }}件</span>
-          <AppButton variant="primary" size="xs" @click="startCreate">+ Webhook追加</AppButton>
+          <ElButton size="small" type="primary" @click="startCreate">+ Webhook追加</ElButton>
         </div>
       </div>
 
       <div class="sidebar-list">
-        <button
+        <ElButton
           v-for="ch in channels"
           :key="ch.id"
           class="sidebar-item"
           :class="{ active: paneMode === 'edit' && selectedChannelId === ch.id }"
+          text
           @click="selectChannel(ch)"
         >
           <span class="sidebar-dot" :class="ch.active ? 'dot-active' : 'dot-inactive'"></span>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <AppBadge :variant="ch.type === 'discord' ? 'primary' : 'secondary'" size="sm">
+              <ElTag
+                :type="ch.type === 'discord' ? 'primary' : 'info'"
+                effect="light"
+                round
+                size="small"
+              >
                 {{ ch.type }}
-              </AppBadge>
+              </ElTag>
               <span class="truncate text-sm font-medium">{{ ch.name }}</span>
             </div>
             <div class="mt-1 truncate text-xs text-base-content/50">
               {{ hasCustomSettings(ch) ? "カスタム設定" : "デフォルト設定" }}
             </div>
           </div>
-        </button>
+        </ElButton>
 
         <div
           v-if="channels.length === 0"
@@ -60,143 +66,202 @@
             </p>
           </div>
           <div v-if="paneMode === 'edit' && selectedChannel" class="flex shrink-0 gap-2">
-            <AppButton
-              variant="outline"
-              size="sm"
+            <ElButton
+              plain
+              size="small"
+              type="primary"
               :loading="testingId === selectedChannel.id"
               @click="testSend(selectedChannel)"
             >
               テスト
-            </AppButton>
-            <AppButton variant="danger" size="sm" @click="remove(selectedChannel)">削除</AppButton>
+            </ElButton>
+            <ElButton type="danger" size="small" @click="remove(selectedChannel)">削除</ElButton>
           </div>
         </div>
 
-        <form @submit.prevent="saveChannel">
+        <ElForm
+          class="aligned-form"
+          label-position="right"
+          label-width="12rem"
+          @submit.prevent="saveChannel"
+        >
           <div class="space-y-4">
-            <AppInput v-model="form.name" label="名前" placeholder="本番アラート" required />
+            <ElFormItem label="名前" required
+              ><ElInput v-model="form.name" placeholder="本番アラート" required
+            /></ElFormItem>
 
-            <AppSelect
-              v-if="paneMode === 'create'"
-              v-model="form.type"
-              label="タイプ"
-              :options="typeOptions"
-            />
+            <ElFormItem v-if="paneMode === 'create'" label="タイプ"
+              ><ElSelect v-model="form.type" class="w-full"
+                ><ElOption
+                  v-for="option in typeOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value" /></ElSelect
+            ></ElFormItem>
             <div v-else class="flex items-center gap-2 rounded-lg bg-base-200 p-3">
               <span class="text-sm text-base-content/50">タイプ</span>
-              <AppBadge :variant="form.type === 'discord' ? 'primary' : 'secondary'" size="sm">
+              <ElTag
+                :type="form.type === 'discord' ? 'primary' : 'info'"
+                effect="light"
+                round
+                size="small"
+              >
                 {{ form.type }}
-              </AppBadge>
+              </ElTag>
             </div>
 
-            <AppInput
-              v-model="form.webhookUrl"
-              label="Webhook URL"
-              type="text"
-              placeholder="https://discord.com/api/webhooks/..."
-              required
-            />
+            <ElFormItem label="Webhook URL" required
+              ><ElInput
+                v-model="form.webhookUrl"
+                placeholder="https://discord.com/api/webhooks/..."
+                required
+            /></ElFormItem>
 
-            <AppCollapsible title="メッセージテンプレート">
-              <AppTextarea
-                v-model="form.downTemplate"
-                label="ダウン時テンプレート"
-                :rows="5"
-                :placeholder="defaultTemplate"
-                monospace
-              />
-              <AppTextarea
-                v-model="form.upTemplate"
-                label="復旧時テンプレート"
-                :rows="5"
-                :placeholder="defaultTemplate"
-                monospace
-              />
-              <TemplateHelp />
-            </AppCollapsible>
+            <ElCollapse>
+              <ElCollapseItem title="メッセージテンプレート">
+                <ElFormItem label="ダウン時テンプレート"
+                  ><ElInput
+                    v-model="form.downTemplate"
+                    :rows="5"
+                    :placeholder="defaultTemplate"
+                    type="textarea"
+                /></ElFormItem>
+                <ElFormItem label="復旧時テンプレート"
+                  ><ElInput
+                    v-model="form.upTemplate"
+                    :rows="5"
+                    :placeholder="defaultTemplate"
+                    type="textarea"
+                /></ElFormItem>
+                <TemplateHelp />
+              </ElCollapseItem>
+            </ElCollapse>
 
-            <AppCollapsible v-if="form.type === 'discord'" title="Discord Payload設定">
-              <div class="discord-payload-settings">
-                <div class="discord-field-group">
-                  <AppInput
-                    v-model="form.discordUsername"
-                    label="Username"
-                    placeholder="Healthcheck"
-                  />
-                  <AppInput
-                    v-model="form.discordAvatarUrl"
-                    label="Avatar URL"
-                    type="text"
-                    placeholder="https://example.com/avatar.png"
-                  />
-                  <AppToggle v-model="form.discordTts" label="TTSで送信" />
+            <ElCollapse v-if="form.type === 'discord'">
+              <ElCollapseItem title="Discord Payload設定">
+                <div class="discord-payload-settings">
+                  <div class="discord-field-group">
+                    <ElFormItem label="Username"
+                      ><ElInput v-model="form.discordUsername" placeholder="Healthcheck"
+                    /></ElFormItem>
+                    <ElFormItem label="Avatar URL"
+                      ><ElInput
+                        v-model="form.discordAvatarUrl"
+                        placeholder="https://example.com/avatar.png"
+                    /></ElFormItem>
+                    <ElFormItem label="TTSで送信">
+                      <div>
+                        <ElSwitch v-model="form.discordTts" />
+                        <p class="mt-1 mb-0 text-xs text-base-content/50">
+                          Discordの読み上げ通知として送信します。対応しているクライアントではメッセージが音声で読み上げられます。
+                        </p>
+                      </div>
+                    </ElFormItem>
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h3 class="text-sm font-semibold">Embed</h3>
+                    <ElFormItem label="Embed Title"
+                      ><ElInput v-model="form.discordEmbedTitle" placeholder="{{monitor.name}}"
+                    /></ElFormItem>
+                    <ElFormItem label="Embed URL"
+                      ><ElInput v-model="form.discordEmbedUrl" placeholder="{{monitor.url}}"
+                    /></ElFormItem>
+                    <ElFormItem label="Embed Color"
+                      ><ElInput v-model="form.discordEmbedColor" placeholder="#00ff00"
+                    /></ElFormItem>
+                    <label class="inline-flex items-center gap-3"
+                      ><span class="text-sm">Timestampを付ける</span
+                      ><ElSwitch v-model="form.discordEmbedTimestamp"
+                    /></label>
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h3 class="text-sm font-semibold">Embed Author / Image / Footer</h3>
+                    <ElFormItem label="Author Name"
+                      ><ElInput v-model="form.discordEmbedAuthorName"
+                    /></ElFormItem>
+                    <ElFormItem label="Author URL"
+                      ><ElInput v-model="form.discordEmbedAuthorUrl"
+                    /></ElFormItem>
+                    <ElFormItem label="Author Icon URL"
+                      ><ElInput v-model="form.discordEmbedAuthorIconUrl"
+                    /></ElFormItem>
+                    <ElFormItem label="Thumbnail URL"
+                      ><ElInput v-model="form.discordEmbedThumbnailUrl"
+                    /></ElFormItem>
+                    <ElFormItem label="Image URL"
+                      ><ElInput v-model="form.discordEmbedImageUrl"
+                    /></ElFormItem>
+                    <ElFormItem label="Footer Text"
+                      ><ElInput v-model="form.discordEmbedFooterText"
+                    /></ElFormItem>
+                    <ElFormItem label="Footer Icon URL"
+                      ><ElInput v-model="form.discordEmbedFooterIconUrl"
+                    /></ElFormItem>
+                  </div>
+
+                  <div class="settings-subsection">
+                    <h3 class="text-sm font-semibold">Mentions / Flags</h3>
+                    <label class="inline-flex items-center gap-3"
+                      ><span class="text-sm">User mentionsを許可</span
+                      ><ElSwitch v-model="form.discordAllowUserMentions"
+                    /></label>
+                    <label class="inline-flex items-center gap-3"
+                      ><span class="text-sm">Role mentionsを許可</span
+                      ><ElSwitch v-model="form.discordAllowRoleMentions"
+                    /></label>
+                    <label class="inline-flex items-center gap-3"
+                      ><span class="text-sm">@everyoneを許可</span
+                      ><ElSwitch v-model="form.discordAllowEveryoneMentions"
+                    /></label>
+                    <label class="inline-flex items-center gap-3"
+                      ><span class="text-sm">リンクEmbedを抑制</span
+                      ><ElSwitch v-model="form.discordSuppressEmbeds"
+                    /></label>
+                    <label class="inline-flex items-center gap-3"
+                      ><span class="text-sm">通知を抑制</span
+                      ><ElSwitch v-model="form.discordSuppressNotifications"
+                    /></label>
+                  </div>
+
+                  <p class="text-xs text-base-content/50">
+                    メッセージ本文はダウン時/復旧時テンプレートからEmbed本文として送信されます。Username、Avatar
+                    URL、Embed項目はテンプレート変数を使えます。
+                  </p>
                 </div>
+              </ElCollapseItem>
+            </ElCollapse>
 
-                <div class="settings-subsection">
-                  <h3 class="text-sm font-semibold">Embed</h3>
-                  <AppInput
-                    v-model="form.discordEmbedTitle"
-                    label="Embed Title"
-                    placeholder="{{monitor.name}}"
-                  />
-                  <AppInput
-                    v-model="form.discordEmbedUrl"
-                    label="Embed URL"
-                    placeholder="{{monitor.url}}"
-                  />
-                  <AppInput
-                    v-model="form.discordEmbedColor"
-                    label="Embed Color"
-                    placeholder="#00ff00"
-                  />
-                  <AppToggle v-model="form.discordEmbedTimestamp" label="Timestampを付ける" />
-                </div>
-
-                <div class="settings-subsection">
-                  <h3 class="text-sm font-semibold">Embed Author / Image / Footer</h3>
-                  <AppInput v-model="form.discordEmbedAuthorName" label="Author Name" />
-                  <AppInput v-model="form.discordEmbedAuthorUrl" label="Author URL" />
-                  <AppInput v-model="form.discordEmbedAuthorIconUrl" label="Author Icon URL" />
-                  <AppInput v-model="form.discordEmbedThumbnailUrl" label="Thumbnail URL" />
-                  <AppInput v-model="form.discordEmbedImageUrl" label="Image URL" />
-                  <AppInput v-model="form.discordEmbedFooterText" label="Footer Text" />
-                  <AppInput v-model="form.discordEmbedFooterIconUrl" label="Footer Icon URL" />
-                </div>
-
-                <div class="settings-subsection">
-                  <h3 class="text-sm font-semibold">Mentions / Flags</h3>
-                  <AppToggle v-model="form.discordAllowUserMentions" label="User mentionsを許可" />
-                  <AppToggle v-model="form.discordAllowRoleMentions" label="Role mentionsを許可" />
-                  <AppToggle v-model="form.discordAllowEveryoneMentions" label="@everyoneを許可" />
-                  <AppToggle v-model="form.discordSuppressEmbeds" label="リンクEmbedを抑制" />
-                  <AppToggle v-model="form.discordSuppressNotifications" label="通知を抑制" />
-                </div>
-
-                <p class="text-xs text-base-content/50">
-                  メッセージ本文はダウン時/復旧時テンプレートからEmbed本文として送信されます。Username、Avatar
-                  URL、Embed項目はテンプレート変数を使えます。
-                </p>
-              </div>
-            </AppCollapsible>
-
-            <AppToggle v-model="form.active" label="有効" />
+            <label class="inline-flex items-center gap-3"
+              ><span class="text-sm">有効</span><ElSwitch v-model="form.active"
+            /></label>
           </div>
 
-          <AppAlert v-if="error" variant="error" class="mt-4 text-sm">{{ error }}</AppAlert>
+          <ElAlert
+            v-if="error"
+            :closable="false"
+            class="mt-4 text-sm"
+            :title="error"
+            type="error"
+            show-icon
+          />
 
           <div class="mt-6 flex justify-end gap-2">
-            <AppButton variant="ghost" @click="resetPane">キャンセル</AppButton>
-            <AppButton type="submit" variant="primary" :loading="saving">
+            <ElButton text type="primary" @click="resetPane">キャンセル</ElButton>
+            <ElButton native-type="submit" type="primary" :loading="saving">
               {{ paneMode === "create" ? "追加" : "保存" }}
-            </AppButton>
+            </ElButton>
           </div>
-        </form>
+        </ElForm>
       </template>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { ElMessage, ElMessageBox } from "element-plus";
+
 type PaneMode = "idle" | "create" | "edit";
 type ChannelType = "discord" | "slack";
 
@@ -461,16 +526,27 @@ async function testSend(ch: Channel) {
   testingId.value = ch.id;
   try {
     await client.notification.test({ id: ch.id });
-    alert(`テスト通知を「${ch.name}」に送信しました`);
+    ElMessage.success(`テスト通知を「${ch.name}」に送信しました`);
   } catch (e) {
-    alert(`失敗: ${e instanceof Error ? e.message : "不明なエラー"}`);
+    ElMessage.error(`失敗: ${e instanceof Error ? e.message : "不明なエラー"}`);
   } finally {
     testingId.value = null;
   }
 }
 
 async function remove(ch: Channel) {
-  if (!confirm(`「${ch.name}」を削除しますか？`)) return;
+  try {
+    await ElMessageBox.confirm(`「${ch.name}」を削除しますか？`, "削除確認", {
+      confirmButtonText: "削除",
+      cancelButtonText: "キャンセル",
+      type: "warning",
+    });
+  } catch (e) {
+    if (e !== "cancel" && e !== "close") {
+      ElMessage.error(e instanceof Error ? e.message : String(e));
+    }
+    return;
+  }
 
   await client.notification.delete({ id: ch.id });
   if (selectedChannelId.value === ch.id) {
@@ -529,6 +605,9 @@ onMounted(load);
   align-items: center;
   gap: 0.5rem;
   width: 100%;
+  height: auto;
+  justify-content: flex-start;
+  margin-left: 0;
   padding: 0.75rem 1rem;
   border: none;
   background: none;
@@ -536,6 +615,15 @@ onMounted(load);
   text-align: left;
   transition: background 0.1s;
   border-bottom: 1px solid var(--border-subtle);
+  white-space: normal;
+}
+
+.sidebar-item :deep(> span) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .sidebar-item:last-child {
@@ -577,5 +665,33 @@ onMounted(load);
   display: flex;
   flex-direction: column;
   gap: 9px;
+}
+
+.aligned-form :deep(.el-form-item__label) {
+  justify-content: flex-end;
+}
+
+.aligned-form :deep(.el-form-item__content) {
+  min-width: 0;
+}
+
+.aligned-form :deep(.el-collapse-item__header) {
+  padding: 0 1rem;
+}
+
+.aligned-form :deep(.el-collapse-item__content) {
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .aligned-form :deep(.el-form-item) {
+    display: block;
+  }
+
+  .aligned-form :deep(.el-form-item__label) {
+    justify-content: flex-start;
+    width: auto !important;
+    margin-bottom: 0.375rem;
+  }
 }
 </style>

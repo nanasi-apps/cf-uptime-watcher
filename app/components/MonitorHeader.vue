@@ -1,52 +1,44 @@
 <template>
-  <div class="monitor-header-card bg-base-100 mb-6">
-    <div class="flex items-start justify-between flex-wrap gap-4">
-      <div>
-        <div class="flex items-center gap-3 mb-2">
-          <span class="header-status-dot" :class="dotClass"></span>
-          <h2 class="text-xl font-bold m-0">{{ monitor.name }}</h2>
-          <span class="status-label" :class="statusLabelClass">{{ statusText }}</span>
+  <ElCard :body-style="{ padding: 0 }" class="bg-base-100 mb-6" shadow="never">
+    <div class="monitor-header-card">
+      <div class="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <span class="header-status-dot" :class="dotClass"></span>
+            <h2 class="text-xl font-bold m-0">{{ monitor.name }}</h2>
+            <ElTag :type="tagType" effect="light" round size="small">{{ statusText }}</ElTag>
+          </div>
+          <div class="text-sm text-base-content/60">
+            <span class="method-badge">{{ monitor.method }}</span>
+            {{ monitor.url }}
+          </div>
         </div>
-        <div class="text-sm text-base-content/60">
-          <span class="method-badge">{{ monitor.method }}</span>
-          {{ monitor.url }}
+        <div v-if="isAdmin" class="flex gap-2 flex-wrap">
+          <ElButton plain size="small" type="primary" :loading="checking" @click="$emit('check')">
+            今すぐチェック
+          </ElButton>
+          <ElButton plain size="small" type="primary" @click="$emit('duplicate')">複製</ElButton>
+          <ElButton plain size="small" type="primary" @click="$emit('edit')">編集</ElButton>
+          <ElButton size="small" type="danger" @click="$emit('delete')">削除</ElButton>
         </div>
       </div>
-      <div v-if="isAdmin" class="flex gap-2 flex-wrap">
-        <AppButton variant="outline" size="sm" :loading="checking" @click="$emit('check')">
-          今すぐチェック
-        </AppButton>
-        <AppButton variant="outline" size="sm" @click="$emit('duplicate')">複製</AppButton>
-        <AppButton variant="outline" size="sm" @click="$emit('edit')">編集</AppButton>
-        <AppButton variant="danger" size="sm" @click="$emit('delete')">削除</AppButton>
-      </div>
-    </div>
 
-    <div class="stats-grid mt-5">
-      <div class="stat-item bg-base-200/50">
-        <div class="stat-label text-base-content/50">稼働率</div>
-        <div class="stat-value" :class="uptimeColorClass">
-          {{ monitor.uptimePercent !== null ? `${monitor.uptimePercent}%` : "-" }}
-        </div>
-      </div>
-      <div class="stat-item bg-base-200/50">
-        <div class="stat-label text-base-content/50">応答時間</div>
-        <div class="stat-value">
-          {{
-            monitor.lastCheck?.responseTime != null ? `${monitor.lastCheck.responseTime}ms` : "-"
-          }}
-        </div>
-      </div>
-      <div class="stat-item bg-base-200/50">
-        <div class="stat-label text-base-content/50">タイムアウト</div>
-        <div class="stat-value">{{ monitor.timeout }}s</div>
-      </div>
-      <div class="stat-item bg-base-200/50">
-        <div class="stat-label text-base-content/50">期待ステータス</div>
-        <div class="stat-value">{{ monitor.expectedStatus }}</div>
+      <div class="stats-grid mt-5">
+        <ElCard class="bg-base-200/50" shadow="never"
+          ><ElStatistic title="稼働率" :value="uptimeValue"
+        /></ElCard>
+        <ElCard class="bg-base-200/50" shadow="never"
+          ><ElStatistic title="応答時間" :value="responseTimeValue"
+        /></ElCard>
+        <ElCard class="bg-base-200/50" shadow="never"
+          ><ElStatistic title="タイムアウト" :value="`${monitor.timeout}s`"
+        /></ElCard>
+        <ElCard class="bg-base-200/50" shadow="never"
+          ><ElStatistic title="期待ステータス" :value="monitor.expectedStatus"
+        /></ElCard>
       </div>
     </div>
-  </div>
+  </ElCard>
 </template>
 
 <script lang="ts" setup>
@@ -73,14 +65,22 @@ const dotClass = computed(() => {
   return map[status.value];
 });
 
-const statusLabelClass = computed(() => {
-  const map: Record<string, string> = {
-    up: "label-up",
-    down: "label-down",
-    pending: "label-pending",
+const tagType = computed(() => {
+  const map: Record<string, "success" | "danger" | "info"> = {
+    up: "success",
+    down: "danger",
+    pending: "info",
   };
   return map[status.value];
 });
+
+const uptimeValue = computed(() =>
+  props.monitor.uptimePercent !== null ? `${props.monitor.uptimePercent}%` : "-",
+);
+
+const responseTimeValue = computed(() =>
+  props.monitor.lastCheck?.responseTime != null ? `${props.monitor.lastCheck.responseTime}ms` : "-",
+);
 </script>
 
 <style scoped>
@@ -109,27 +109,6 @@ const statusLabelClass = computed(() => {
   opacity: 0.3;
 }
 
-.status-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.125rem 0.625rem;
-  border-radius: 9999px;
-}
-
-.label-up {
-  background-color: var(--status-up-bg);
-  color: var(--status-up-fg);
-}
-.label-down {
-  background-color: var(--status-down-bg);
-  color: var(--status-down-fg);
-}
-.label-pending {
-  background-color: var(--color-base-200);
-  color: var(--color-base-content, gray);
-  opacity: 0.7;
-}
-
 .method-badge {
   display: inline-block;
   font-size: 0.6875rem;
@@ -150,23 +129,5 @@ const statusLabelClass = computed(() => {
   .stats-grid {
     grid-template-columns: repeat(4, 1fr);
   }
-}
-
-.stat-item {
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-}
-
-.stat-label {
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
-}
-
-.stat-value {
-  font-size: 1.125rem;
-  font-weight: 600;
-  font-family: ui-monospace, monospace;
 }
 </style>

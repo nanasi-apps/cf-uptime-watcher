@@ -1,7 +1,7 @@
 <template>
-  <AppBadge :variant="badgeVariant" size="sm">
+  <ElTag :type="tagType" effect="light" round size="small">
     {{ label }}
-  </AppBadge>
+  </ElTag>
 </template>
 
 <script lang="ts" setup>
@@ -9,13 +9,13 @@ const props = defineProps<{
   status: "up" | "down" | "pending";
 }>();
 
-const badgeVariant = computed<"success" | "error" | "ghost">(() => {
-  const map: Record<string, "success" | "error" | "ghost"> = {
+const tagType = computed(() => {
+  const map: Record<string, "success" | "danger" | "info"> = {
     up: "success",
-    down: "error",
-    pending: "ghost",
+    down: "danger",
+    pending: "info",
   };
-  return map[props.status] ?? "ghost";
+  return map[props.status] ?? "info";
 });
 
 const label = computed(() => {

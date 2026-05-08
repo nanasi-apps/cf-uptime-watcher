@@ -22,6 +22,7 @@
     "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.9",
     "drizzle-orm": "^0.45.1",
+    "element-plus": "^2.13.7",
     "nuxt": "^4.4.2",
     "vue": "^3.5.30",
     "zod": "^4.3.6"

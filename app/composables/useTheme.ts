@@ -7,6 +7,7 @@ const theme = ref<Theme>("light");
 function applyTheme(t: Theme) {
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("data-theme", t);
+    document.documentElement.classList.toggle("dark", t === "dark");
   }
 }
 
