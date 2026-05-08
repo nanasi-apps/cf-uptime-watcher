@@ -1,4 +1,4 @@
-import { implement } from "@orpc/server";
+import { implement, ORPCError } from "@orpc/server";
 import type { dbD1 } from "../database/drizzle/db";
 import * as mnQueries from "../database/drizzle/queries/monitor-notifications";
 import * as queries from "../database/drizzle/queries/monitors";
@@ -17,7 +17,7 @@ const os = implement(contract).$context<Context>();
 
 function requireAuth(context: Context) {
   if (!context.password || !context.authToken || context.authToken !== context.password) {
-    throw new Error("Unauthorized");
+    throw new ORPCError("UNAUTHORIZED");
   }
 }
 
