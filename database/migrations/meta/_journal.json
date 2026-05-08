@@ -50,6 +50,13 @@
       "when": 1774599000000,
       "tag": "0006_expand_discord_payload",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1778175600000,
+      "tag": "0007_clean_discord_sentinel_values",
+      "breakpoints": true
     }
   ]
 }
