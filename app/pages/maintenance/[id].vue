@@ -37,6 +37,24 @@
           </div>
         </dl>
 
+        <section class="affected-services">
+          <h2>{{ t("maintenance.affectedServices") }}</h2>
+          <div v-if="affectedMonitors.length > 0" class="affected-service-list">
+            <NuxtLink
+              v-for="monitor in affectedMonitors"
+              :key="monitor.id"
+              class="affected-service-item"
+              :to="`/monitors/${monitor.id}`"
+            >
+              <StatusDot :status="monitorStatus(monitor)" />
+              <span>{{ monitor.name }}</span>
+            </NuxtLink>
+          </div>
+          <p v-else class="maintenance-message app-subtle">
+            {{ t("maintenance.allServicesAffected") }}
+          </p>
+        </section>
+
         <p v-if="maintenance.message" class="maintenance-message">
           {{ maintenance.message }}
         </p>
@@ -55,14 +73,23 @@
 </template>
 
 <script setup lang="ts">
-import type { MaintenanceEvent } from "~/components/types";
+import type { MaintenanceEvent, MonitorWithStatus } from "~/components/types";
 
 const route = useRoute();
 const { t } = useI18n();
 
 const maintenanceId = computed(() => parseMaintenanceId(route.params.id, route.path));
 const maintenance = ref<MaintenanceEvent | null>(null);
+const monitors = ref<MonitorWithStatus[]>([]);
 const loading = ref(false);
+
+const affectedMonitors = computed(() => {
+  const monitorIds = maintenance.value?.monitorIds ?? [];
+  if (monitorIds.length === 0) return [];
+
+  const monitorIdSet = new Set(monitorIds);
+  return monitors.value.filter((monitor) => monitorIdSet.has(monitor.id));
+});
 
 const statusLabel = computed(() => {
   if (!maintenance.value) return "";
@@ -98,12 +125,24 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleString();
 }
 
+function monitorStatus(monitor: MonitorWithStatus) {
+  if (monitor.lastCheck?.status === "up" || monitor.lastCheck?.status === "down") {
+    return monitor.lastCheck.status;
+  }
+  return "pending";
+}
+
 async function loadMaintenance() {
   if (maintenanceId.value === null) return;
 
   loading.value = true;
   try {
-    maintenance.value = await client.statusInfo.getMaintenance({ id: maintenanceId.value });
+    const [maintenanceEvent, monitorList] = await Promise.all([
+      client.statusInfo.getMaintenance({ id: maintenanceId.value }),
+      client.monitor.list(),
+    ]);
+    maintenance.value = maintenanceEvent;
+    monitors.value = monitorList;
   } finally {
     loading.value = false;
   }
@@ -217,5 +256,31 @@ onMounted(async () => {
   margin: 0;
   white-space: pre-wrap;
   line-height: 1.7;
+}
+
+.affected-services h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.affected-service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.affected-service-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--app-text);
+  background: var(--el-fill-color-light);
+  text-decoration: none;
+}
+
+.affected-service-item:hover {
+  background: var(--surface-hover);
 }
 </style>

@@ -3,6 +3,7 @@ import type { dbD1 } from "../db";
 import {
   incidentEventTable,
   maintenanceEventTable,
+  maintenanceMonitorTable,
   type IncidentEventInsert,
   type MaintenanceEventInsert,
 } from "../schema/status-events";
@@ -20,6 +21,30 @@ export function getMaintenanceEvents(db: DB, limit = 20) {
 
 export function getMaintenanceEvent(db: DB, id: number) {
   return db.select().from(maintenanceEventTable).where(eq(maintenanceEventTable.id, id)).get();
+}
+
+export function getMonitorIdsForMaintenance(db: DB, maintenanceId: number) {
+  return db
+    .select({ monitorId: maintenanceMonitorTable.monitorId })
+    .from(maintenanceMonitorTable)
+    .where(eq(maintenanceMonitorTable.maintenanceId, maintenanceId))
+    .all();
+}
+
+export async function setMonitorsForMaintenance(
+  db: DB,
+  maintenanceId: number,
+  monitorIds: number[],
+) {
+  await db
+    .delete(maintenanceMonitorTable)
+    .where(eq(maintenanceMonitorTable.maintenanceId, maintenanceId));
+
+  if (monitorIds.length > 0) {
+    await db
+      .insert(maintenanceMonitorTable)
+      .values(monitorIds.map((monitorId) => ({ maintenanceId, monitorId })));
+  }
 }
 
 export function getActiveMaintenanceEvent(db: DB, now = new Date().toISOString()) {

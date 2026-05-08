@@ -74,10 +74,26 @@ async function getStatusInfo(context: Context) {
     statusQueries.getIncidents(context.db),
     statusQueries.getActiveIncident(context.db),
   ]);
+  const maintenanceEventsWithMonitorIds = await Promise.all(
+    maintenanceEvents.map(async (event) => ({
+      ...event,
+      monitorIds: (await statusQueries.getMonitorIdsForMaintenance(context.db, event.id)).map(
+        (row) => row.monitorId,
+      ),
+    })),
+  );
+  const activeMaintenanceWithMonitorIds = activeMaintenance
+    ? {
+        ...activeMaintenance,
+        monitorIds: (
+          await statusQueries.getMonitorIdsForMaintenance(context.db, activeMaintenance.id)
+        ).map((row) => row.monitorId),
+      }
+    : null;
   const hasDownMonitor = await queries.hasCurrentDownMonitor(context.db);
   return {
-    maintenanceEvents,
-    activeMaintenance: activeMaintenance ?? null,
+    maintenanceEvents: maintenanceEventsWithMonitorIds,
+    activeMaintenance: activeMaintenanceWithMonitorIds,
     incidents,
     activeIncident: activeIncident ?? null,
     canCreateIncident: hasDownMonitor && !activeMaintenance,
@@ -229,7 +245,15 @@ const getStatusInformation = os.statusInfo.get.handler(async ({ context }) => {
 });
 
 const getMaintenance = os.statusInfo.getMaintenance.handler(async ({ context, input }) => {
-  return (await statusQueries.getMaintenanceEvent(context.db, input.id)) ?? null;
+  const event = await statusQueries.getMaintenanceEvent(context.db, input.id);
+  if (!event) return null;
+
+  return {
+    ...event,
+    monitorIds: (await statusQueries.getMonitorIdsForMaintenance(context.db, event.id)).map(
+      (row) => row.monitorId,
+    ),
+  };
 });
 
 const createMaintenance = os.statusInfo.createMaintenance.handler(async ({ context, input }) => {
@@ -246,7 +270,10 @@ const createMaintenance = os.statusInfo.createMaintenance.handler(async ({ conte
     startAt: startAt.toISOString(),
     endAt: endAt.toISOString(),
   });
-  return result[0]!;
+  const created = result[0]!;
+  const monitorIds = input.monitorIds ?? [];
+  await statusQueries.setMonitorsForMaintenance(context.db, created.id, monitorIds);
+  return { ...created, monitorIds };
 });
 
 const updateMaintenance = os.statusInfo.updateMaintenance.handler(async ({ context, input }) => {
@@ -263,6 +290,7 @@ const updateMaintenance = os.statusInfo.updateMaintenance.handler(async ({ conte
     startAt: startAt.toISOString(),
     endAt: endAt.toISOString(),
   });
+  await statusQueries.setMonitorsForMaintenance(context.db, input.id, input.monitorIds ?? []);
   return { status: "OK" as const };
 });
 

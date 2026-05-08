@@ -389,6 +389,24 @@
           <ElFormItem :label="t('statusInfo.messageLabel')">
             <ElInput v-model="maintenanceForm.message" :rows="4" type="textarea" />
           </ElFormItem>
+          <ElFormItem :label="t('settings.maintenanceAffectedServices')">
+            <ElSelect
+              v-model="maintenanceForm.monitorIds"
+              class="w-full"
+              clearable
+              collapse-tags
+              multiple
+              :placeholder="t('settings.maintenanceAllServices')"
+            >
+              <ElOption
+                v-for="monitor in monitors"
+                :key="monitor.id"
+                :label="monitor.name"
+                :value="monitor.id"
+              />
+            </ElSelect>
+            <p class="form-help">{{ t("settings.maintenanceAffectedServicesHelp") }}</p>
+          </ElFormItem>
           <ElAlert
             v-if="maintenanceError"
             :closable="false"
@@ -637,6 +655,7 @@ function blankMaintenanceForm() {
     title: "",
     message: "",
     range: [] as Date[],
+    monitorIds: [] as number[],
   };
 }
 
@@ -667,6 +686,7 @@ function maintenanceToForm(event: MaintenanceEvent) {
     title: event.title,
     message: event.message ?? "",
     range: [new Date(event.startAt), new Date(event.endAt)],
+    monitorIds: event.monitorIds,
   };
 }
 
@@ -852,6 +872,7 @@ async function saveMaintenance() {
       message: maintenanceForm.value.message || null,
       startAt: startAt.toISOString(),
       endAt: endAt.toISOString(),
+      monitorIds: maintenanceForm.value.monitorIds,
     };
     if (maintenancePaneMode.value === "create") {
       const created = await client.statusInfo.createMaintenance(input);

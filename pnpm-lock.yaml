@@ -51,6 +51,9 @@ importers:
       '@types/node':
         specifier: ^20.19.40
         version: 20.19.40
+      portless:
+        specifier: ^0.13.0
+        version: 0.13.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -4926,6 +4929,11 @@ packages:
   pngjs@7.0.0:
     resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==, tarball: https://registry.npmjs.org/pngjs/-/pngjs-7.0.0.tgz}
     engines: {node: '>=14.19.0'}
+
+  portless@0.13.0:
+    resolution: {integrity: sha512-PxMZ5BHH+ZZi9rTq4T8m003aZxh56qI0aBdNsxLn7jrTtvNJYBWYD3lc5PuQrom/aVh6z8iLb+tKUI6b7QNYQw==, tarball: https://registry.npmjs.org/portless/-/portless-0.13.0.tgz}
+    engines: {node: '>=20'}
+    hasBin: true
 
   postcss-calc@10.1.1:
     resolution: {integrity: sha512-NYEsLHh8DgG/PRH2+G9BTuUdtf9ViS+vdoQ0YA5OQdGsfN4ztiwtDWNtBl9EKeqNMFnIu8IKZ0cLxEQ5r5KVMw==, tarball: https://registry.npmjs.org/postcss-calc/-/postcss-calc-10.1.1.tgz}
@@ -10418,6 +10426,8 @@ snapshots:
       pathe: 2.0.3
 
   pngjs@7.0.0: {}
+
+  portless@0.13.0: {}
 
   postcss-calc@10.1.1(postcss@8.5.14):
     dependencies:

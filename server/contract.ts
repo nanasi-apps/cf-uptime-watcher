@@ -33,6 +33,7 @@ const MaintenanceEventSchema = z.object({
   startAt: z.string(),
   endAt: z.string(),
   createdAt: z.string(),
+  monitorIds: z.array(z.number().int()),
 });
 
 const IncidentEventSchema = z.object({
@@ -320,6 +321,7 @@ export const contract = {
           message: z.string().max(500).nullable().optional(),
           startAt: z.string().datetime(),
           endAt: z.string().datetime(),
+          monitorIds: z.array(z.coerce.number().int()).optional(),
         }),
       )
       .output(MaintenanceEventSchema),
@@ -340,6 +342,7 @@ export const contract = {
           message: z.string().max(500).nullable().optional(),
           startAt: z.string().datetime(),
           endAt: z.string().datetime(),
+          monitorIds: z.array(z.coerce.number().int()).optional(),
         }),
       )
       .output(z.object({ status: z.literal("OK") })),

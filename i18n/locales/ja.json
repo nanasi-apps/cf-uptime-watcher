@@ -82,6 +82,8 @@
     "loading": "読み込み中...",
     "notFound": "メンテナンス情報が見つかりません",
     "noMessage": "詳細は登録されていません。",
+    "affectedServices": "影響するサービス",
+    "allServicesAffected": "すべてのサービスが対象です。",
     "statusPlanned": "予定",
     "statusActive": "実施中",
     "statusEnded": "終了"
@@ -162,6 +164,9 @@
     "createMaintenance": "メンテナンス追加",
     "editMaintenance": "メンテナンス編集",
     "maintenanceDescription": "日時を指定すると、その期間のチェック履歴は maintenance として記録されます。",
+    "maintenanceAffectedServices": "影響するサービス",
+    "maintenanceAllServices": "未選択の場合はすべてのサービスが対象です",
+    "maintenanceAffectedServicesHelp": "対象を選択すると、そのサービスのみメンテナンス扱いになります。",
     "createIncident": "インシデント追加",
     "editIncident": "インシデント編集",
     "incidentDescription": "停止中のモニターがあり、メンテナンス中ではない場合に障害情報として公開できます。",

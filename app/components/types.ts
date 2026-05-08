@@ -16,6 +16,7 @@ export interface MaintenanceEvent {
   startAt: string;
   endAt: string;
   createdAt: string;
+  monitorIds: number[];
 }
 
 export interface IncidentEvent {

@@ -1,7 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "nuxi dev",
+    "dev": "portless run --name cf-healthcheck nuxi dev",
+    "dev:nuxt": "nuxi dev",
     "build": "nuxi build",
     "preview": "nuxi preview",
     "postinstall": "nuxi prepare",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.40",
+    "portless": "^0.13.0",
     "typescript": "^5.9.3",
     "vite-plus": "latest",
     "wrangler": "^4.90.0"

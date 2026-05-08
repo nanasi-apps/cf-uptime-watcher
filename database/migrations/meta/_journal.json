@@ -64,6 +64,13 @@
       "when": 1778265994053,
       "tag": "0008_even_the_initiative",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1778266500000,
+      "tag": "0009_maintenance_monitors",
+      "breakpoints": true
     }
   ]
 }

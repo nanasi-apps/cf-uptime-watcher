@@ -82,6 +82,8 @@
     "loading": "Loading...",
     "notFound": "Maintenance information was not found",
     "noMessage": "No details have been registered.",
+    "affectedServices": "Affected services",
+    "allServicesAffected": "All services are affected.",
     "statusPlanned": "Planned",
     "statusActive": "In progress",
     "statusEnded": "Ended"
@@ -162,6 +164,9 @@
     "createMaintenance": "Add maintenance",
     "editMaintenance": "Edit maintenance",
     "maintenanceDescription": "Set a date/time range; checks during the period are recorded as maintenance.",
+    "maintenanceAffectedServices": "Affected services",
+    "maintenanceAllServices": "Leave empty to affect all services",
+    "maintenanceAffectedServicesHelp": "Select services to mark only those services as under maintenance.",
     "createIncident": "Add incident",
     "editIncident": "Edit incident",
     "incidentDescription": "Publish incident information when a monitor is down and no maintenance is active.",

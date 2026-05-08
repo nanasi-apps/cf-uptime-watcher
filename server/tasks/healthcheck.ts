@@ -20,13 +20,25 @@ export default defineTask({
     const monitors = await queries.getActiveMonitors(db);
     const allChannels = await channelQueries.getActiveChannels(db);
     const activeMaintenance = await statusQueries.getActiveMaintenanceEvent(db);
+    const activeMaintenanceMonitorIds = activeMaintenance
+      ? (await statusQueries.getMonitorIdsForMaintenance(db, activeMaintenance.id)).map(
+          (row) => row.monitorId,
+        )
+      : [];
+    const activeMaintenanceMonitorIdSet = new Set(activeMaintenanceMonitorIds);
 
     await Promise.allSettled(
       monitors.map(async (monitor) => {
         const previousCheck = await queries.getLatestNonMaintenanceCheckResult(db, monitor.id);
         const previouslyUp = previousCheck?.isUp ?? true;
 
-        const result = activeMaintenance
+        const isUnderMaintenance = Boolean(
+          activeMaintenance &&
+          (activeMaintenanceMonitorIdSet.size === 0 ||
+            activeMaintenanceMonitorIdSet.has(monitor.id)),
+        );
+
+        const result = isUnderMaintenance
           ? {
               statusCode: null,
               responseTime: null,
@@ -40,7 +52,7 @@ export default defineTask({
           ...result,
         });
 
-        if (activeMaintenance) return;
+        if (isUnderMaintenance) return;
 
         if (!result.isUp) {
           console.error(
