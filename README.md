@@ -1,238 +1,267 @@
-# cf-uptime-watcher
+# cf-uptime-watcher 🛰️
 
-> Lightweight uptime monitoring that runs entirely on Cloudflare's free tier — no servers, no subscriptions.
+> Serverless uptime monitoring for Cloudflare Workers and D1.
 
-**cf-uptime-watcher** is a self-hosted uptime monitor built on Cloudflare Workers and D1. It checks your HTTP endpoints every 5 minutes, stores history in a serverless SQLite database, and fires Slack or Discord alerts the moment a service goes down (or recovers).
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](./LICENSE)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-f38020.svg)](https://workers.cloudflare.com/)
+[![Nuxt 4](https://img.shields.io/badge/Nuxt-4-00dc82.svg)](https://nuxt.com/)
 
-## Features
+Language: English | [日本語](./README.ja.md)
 
-- **Zero-infrastructure** — runs as a Cloudflare Worker with Cron Triggers; no VMs or containers
-- **Scheduled checks** — polls every 5 minutes out of the box (configurable via cron)
-- **Flexible HTTP checks** — GET or POST, custom headers, request body, configurable timeout and expected status code
-- **Check history** — stores response time, HTTP status, and error messages for every check
-- **Uptime percentage** — computed per-monitor across all stored results
-- **Instant alerts** — notifies Slack and Discord when a monitor changes state (down → up or up → down)
-- **Custom notification templates** — set shared, down-only, and recovery-only messages with `{{monitor.name}}`, `{{status}}`, `{{responseTime}}`, `{{error}}`, etc.
-- **Bulk import** — import monitors from JSON with duplicate-skipping
-- **Type-safe REST API** — powered by [oRPC](https://orpc.unnoq.com) with an auto-generated OpenAPI spec
-- **Web dashboard** — built with Nuxt 4 + Vue 3, TailwindCSS, and DaisyUI
-- **Password authentication** — simple bearer-token auth for write operations
+**cf-uptime-watcher** is a self-hosted uptime dashboard that runs as a Cloudflare Worker. It checks HTTP endpoints on a 5-minute cron, stores results in Cloudflare D1, and sends Slack or Discord alerts only when a monitor changes state.
 
-## Tech Stack
+- 🌐 Live usage example: https://uptime.nanasi-apps.xyz/
+- ☁️ Runtime: Cloudflare Workers + D1
+- 🎨 Frontend: Nuxt 4, Vue 3, Tailwind CSS v4, DaisyUI, Element Plus
 
-| Layer      | Technology                                                                 |
-| ---------- | -------------------------------------------------------------------------- |
-| Runtime    | [Cloudflare Workers](https://workers.cloudflare.com)                       |
-| Framework  | [Nuxt 4](https://nuxt.com) / [Vue 3](https://vuejs.org)                    |
-| Database   | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite)            |
-| ORM        | [Drizzle ORM](https://orm.drizzle.team)                                    |
-| API        | [oRPC](https://orpc.unnoq.com) + OpenAPI                                   |
-| Validation | [Zod](https://zod.dev)                                                     |
-| Styling    | [TailwindCSS v4](https://tailwindcss.com) + [DaisyUI](https://daisyui.com) |
-| Deployment | [Wrangler](https://developers.cloudflare.com/workers/wrangler/)            |
+## ✨ Why Did I Build This?
 
-## Getting Started
+Most uptime tools either require a long-running server or become paid once you need private checks and notifications. This project keeps the moving parts small enough for webhook notifications to run with just one Worker, one D1 database, and Cron Triggers.
 
-### Prerequisites
+It is designed for personal services, small teams, hobby projects, and lightweight public status dashboards.
 
-- [Node.js](https://nodejs.org) 20+
-- [pnpm](https://pnpm.io) 10+
-- A [Cloudflare account](https://dash.cloudflare.com/sign-up) (free tier is sufficient)
+## 🚀 Features
 
-### 1. Clone and install
+- ☁️ **Serverless checks** - Cloudflare Cron Triggers run active monitors every 5 minutes.
+- 🛠️ **HTTP monitor settings** - configure `GET` or `POST`, headers, body, timeout, expected status, and active state.
+- 📊 **Dashboard views** - list/grid monitor overview, status summary, detail page, and recent check history.
+- 🔐 **Admin workflow** - password login for creating, editing, duplicating, deleting, importing, and manually checking monitors.
+- 📦 **Bulk import** - upload a JSON array of monitors and optionally skip duplicate URLs.
+- 🔔 **Notifications** - Slack and Discord webhook channels with test sends and per-monitor channel assignment.
+- 🚦 **State-change alerts** - notifications are sent when a monitor goes down or recovers, not on every scheduled check.
+- 🧾 **Custom templates** - shared, down-only, and recovery-only messages with variables such as `{{ monitor.name }}`, `{{ status }}`, `{{ responseTime }}`, and `{{ error }}`.
+- 🎛️ **Discord payload controls** - customize username/avatar overrides, embeds, timestamps, mention controls, and notification suppression.
+- 🌏 **Japanese and English UI** - Nuxt i18n with Japanese as the default locale.
+- 🌙 **Light/dark theme** - persisted theme setting with system preference detection.
+
+## 👀 Live Usage Example
+
+This is an actual deployed instance I use as a public example of how the dashboard looks in operation:
+
+https://uptime.nanasi-apps.xyz/
+
+## 🧱 Tech Stack
+
+| Layer         | Technology                                                                          |
+| ------------- | ----------------------------------------------------------------------------------- |
+| App framework | [Nuxt 4](https://nuxt.com/) / [Vue 3](https://vuejs.org/)                           |
+| Runtime       | [Cloudflare Workers](https://workers.cloudflare.com/) via Nitro `cloudflare-module` |
+| Database      | [Cloudflare D1](https://developers.cloudflare.com/d1/)                              |
+| ORM           | [Drizzle ORM](https://orm.drizzle.team/)                                            |
+| UI            | Tailwind CSS v4, DaisyUI, Element Plus                                              |
+| Tooling       | [Vite+](https://github.com/uncenter/vite-plus) command wrapper, Wrangler            |
+
+## 🚢 Deploy To Cloudflare
+
+### ✅ Prerequisites
+
+- Node.js 20+
+- pnpm 10.32.1+
+- A Cloudflare account with Wrangler authentication already set up
+- Vite+ CLI available as `vp`
+
+### 1. Clone And Install
 
 ```sh
 git clone https://github.com/mattyatea/cf-uptime-watcher.git
 cd cf-uptime-watcher
-pnpm install
+vp install
 ```
 
-### 2. Create the D1 database
+### 2. Create A D1 Database
 
 ```sh
-pnpm wrangler d1 create healthcheck
+vp exec wrangler d1 create healthcheck
 ```
 
-Copy the `database_id` from the output and update `wrangler.toml`:
+Copy the generated `database_id` into `wrangler.toml`:
 
 ```toml
 [[d1_databases]]
 binding = "DB"
 database_name = "healthcheck"
 database_id = "<your-database-id>"
+migrations_dir = "database/migrations"
 ```
 
-### 3. Run database migrations
+### 3. Configure The Admin Password
+
+Store `AUTH_PASSWORD` as a Cloudflare Worker secret:
 
 ```sh
-# Apply to local (for development)
-pnpm wrangler d1 migrations apply healthcheck --local
-
-# Apply to remote (production)
-pnpm drizzle:migrate
+vp exec wrangler secret put AUTH_PASSWORD
 ```
 
-### 4. Set your admin password
-
-Register `AUTH_PASSWORD` as a Cloudflare secret so it is never stored in plain text:
+### 4. Apply Remote Migrations
 
 ```sh
-pnpm wrangler secret put AUTH_PASSWORD
+vp run drizzle:migrate
 ```
 
-Wrangler will prompt you to enter the value interactively. The secret is encrypted and injected at runtime — it does not appear in `wrangler.toml` or source control.
-
-For local development, create a `.dev.vars` file in the project root (already gitignored):
+### 5. Deploy The Worker
 
 ```sh
-# .dev.vars
-AUTH_PASSWORD=your-local-password
+vp run deploy
 ```
 
-### 5. Start the development server
+Open your deployed Worker URL and log in with `AUTH_PASSWORD` to manage monitors.
 
-```sh
-pnpm dev
+The deployment uses:
+
+- `wrangler.toml` for Worker name, D1 binding, assets, and Cron Trigger configuration.
+- `nuxt.config.ts` for the Nitro Cloudflare module preset and scheduled task registration.
+- `database/migrations` for D1 schema migrations.
+
+The health check schedule is configured in both places and should stay aligned:
+
+```toml
+[triggers]
+crons = ["*/5 * * * *"]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
-
-## Deployment
-
-Build and deploy to Cloudflare Workers in a single command:
-
-```sh
-pnpm deploy
+```ts
+scheduledTasks: { "*/5 * * * *": ["healthcheck"] }
 ```
 
-This runs `nuxi build && wrangler deploy` and publishes your Worker with the configured Cron Trigger (`*/5 * * * *`).
+## ⚙️ Configuration
 
-## Notification Channels
+### 🔑 Secrets
 
-### Discord
+| Name            | Required | Description                    |
+| --------------- | -------- | ------------------------------ |
+| `AUTH_PASSWORD` | Yes      | Admin password used to log in. |
 
-Create a webhook in your Discord server (**Server Settings → Integrations → Webhooks**) and add a Discord channel via the dashboard or API.
+### 📥 Monitor JSON
 
-Discord channels can customize webhook payload fields from the dashboard, including `content`, `username`, `avatar_url`, `tts`, embed fields, `allowed_mentions`, message flags, `thread_name`, and `applied_tags`. File uploads, components, and polls are not supported by the structured editor.
+Bulk import expects a JSON array:
+
+```json
+[
+  {
+    "name": "Service",
+    "url": "https://service.example.com/health",
+    "method": "GET",
+    "timeout": 30,
+    "expectedStatus": 200
+  },
+  {
+    "name": "Webhook",
+    "url": "https://service.example.com/webhook-test",
+    "method": "POST",
+    "headers": "{\"Content-Type\": \"application/json\"}",
+    "body": "{\"ping\": true}",
+    "timeout": 30,
+    "expectedStatus": 200
+  }
+]
+```
+
+Supported monitor fields:
+
+| Field            | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `name`           | Internal monitor name.                                          |
+| `displayName`    | Optional public-facing display name.                            |
+| `url`            | Target URL.                                                     |
+| `method`         | `GET` or `POST`.                                                |
+| `headers`        | JSON string of request headers.                                 |
+| `body`           | Request body used for `POST` monitors.                          |
+| `timeout`        | Timeout in seconds, from 1 to 120. Defaults to `30` in imports. |
+| `expectedStatus` | HTTP status that counts as healthy. Defaults to `200`.          |
+| `active`         | Whether scheduled checks should run.                            |
+
+## 🔔 Notifications
+
+Notification channels are configured from the settings page after logging in.
 
 ### Slack
 
-Create an [Incoming Webhook](https://api.slack.com/messaging/webhooks) for your Slack workspace and add it via the dashboard or API.
+Create a Slack Incoming Webhook and add Slack as a notification channel.
+Messages are sent as attachment payloads with a green recovery color or red down color.
 
-### Custom Templates
+### Discord
 
-Both channel types support Mustache-style template strings. A down template is used when a monitor fails, and an up template is used when it recovers. Available variables:
+Create a Discord webhook and add Discord as a notification channel.
+Discord channels can configure:
 
-| Variable             | Description                       |
-| -------------------- | --------------------------------- |
-| `{{monitor.name}}`   | Monitor display name              |
-| `{{monitor.url}}`    | Monitored URL                     |
-| `{{monitor.method}}` | HTTP method                       |
-| `{{status}}`         | `DOWN` or `RECOVERED`             |
-| `{{statusCode}}`     | HTTP response code (or `N/A`)     |
-| `{{responseTime}}`   | Response time in ms (or `N/A`)    |
-| `{{error}}`          | Error message if the check failed |
-| `{{timestamp}}`      | ISO 8601 timestamp of the check   |
+- username/avatar overrides
+- embeds
+- timestamps
+- mention controls
+- notification suppression
 
-**Default template:**
+### 🧾 Templates
 
-```
-[{{status}}] {{monitor.name}}
-URL: {{monitor.url}}
-Status: {{statusCode}} | Response: {{responseTime}}
-{{error}}
-```
+Templates support variables from the monitor and check result:
 
-## API
+| Variable               | Description                             |
+| ---------------------- | --------------------------------------- |
+| `{{ monitor.name }}`   | Monitor name.                           |
+| `{{ monitor.url }}`    | Target URL.                             |
+| `{{ monitor.method }}` | HTTP method.                            |
+| `{{ status }}`         | `DOWN` or `RECOVERED`.                  |
+| `{{ statusCode }}`     | HTTP status code or `N/A`.              |
+| `{{ responseTime }}`   | Response time in milliseconds or `N/A`. |
+| `{{ error }}`          | Error details when the check failed.    |
+| `{{ timestamp }}`      | Check timestamp.                        |
 
-The REST API is fully documented via an auto-generated OpenAPI spec. Once running, visit:
+## 🧑‍💻 Development
 
-```
-http://localhost:3000/api/openapi.json
-```
-
-Authentication for write operations uses a `Bearer` token that matches your `AUTH_PASSWORD`.
-
-### Quick reference
-
-| Method   | Path                                  | Auth   | Description                    |
-| -------- | ------------------------------------- | ------ | ------------------------------ |
-| `GET`    | `/api/monitors`                       | —      | List all monitors with status  |
-| `POST`   | `/api/monitors`                       | Bearer | Create a monitor               |
-| `PATCH`  | `/api/monitors/:id`                   | Bearer | Update a monitor               |
-| `DELETE` | `/api/monitors/:id`                   | Bearer | Delete a monitor               |
-| `POST`   | `/api/monitors/:id/check`             | Bearer | Trigger an immediate check     |
-| `GET`    | `/api/monitors/:id/history`           | —      | Get check history              |
-| `POST`   | `/api/monitors/import`                | Bearer | Bulk import monitors from JSON |
-| `PUT`    | `/api/monitors/:id/channels`          | Bearer | Assign notification channels   |
-| `GET`    | `/api/notification-channels`          | Bearer | List notification channels     |
-| `POST`   | `/api/notification-channels`          | Bearer | Create a notification channel  |
-| `POST`   | `/api/notification-channels/:id/test` | Bearer | Send a test alert              |
-| `POST`   | `/api/auth/login`                     | —      | Validate admin password        |
-
-### Bulk import example
+Use Vite+ commands so the pinned pnpm lockfile and repository hooks stay consistent.
 
 ```sh
-curl -X POST https://your-worker.workers.dev/api/monitors/import \
-  -H "Authorization: Bearer your-password" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "skipDuplicates": true,
-    "monitors": [
-      { "name": "API", "url": "https://api.example.com/health", "method": "GET" },
-      { "name": "App", "url": "https://app.example.com", "method": "GET" }
-    ]
-  }'
-```
+# Start Nuxt dev server
+vp run dev
 
-## Configuration Reference
+# Build for Cloudflare Workers
+vp run build
 
-### `wrangler.toml`
-
-| Key                          | Default       | Description                     |
-| ---------------------------- | ------------- | ------------------------------- |
-| `triggers.crons`             | `*/5 * * * *` | Cron schedule for health checks |
-| `d1_databases[].database_id` | —             | Your Cloudflare D1 database ID  |
-
-### Secrets
-
-Set via `pnpm wrangler secret put <KEY>`. Never commit these to source control.
-
-| Key             | Description                                |
-| --------------- | ------------------------------------------ |
-| `AUTH_PASSWORD` | Admin password for authenticated endpoints |
-
-### Monitor options
-
-| Field            | Type             | Description                          |
-| ---------------- | ---------------- | ------------------------------------ |
-| `name`           | `string`         | Display name (max 100 chars)         |
-| `url`            | `string`         | Target URL                           |
-| `method`         | `GET \| POST`    | HTTP method                          |
-| `expectedStatus` | `number`         | Expected HTTP status (default `200`) |
-| `timeout`        | `number`         | Request timeout in seconds (1–120)   |
-| `headers`        | `string \| null` | JSON string of request headers       |
-| `body`           | `string \| null` | Request body for POST monitors       |
-| `active`         | `boolean`        | Whether the monitor runs on schedule |
-
-## Development
-
-```sh
-# Start dev server
-pnpm dev
-
-# Type-check, lint, and format
+# Run linting, formatting, and type checks
 vp check
 
-# Run linter only
-pnpm lint
+# Run tests
+vp test
+
+# Run a focused test file
+vp test server/notifiers/template.test.ts
 
 # Generate Drizzle migrations after schema changes
-pnpm drizzle:generate
+vp run drizzle:generate
 
 # Open Drizzle Studio
-pnpm drizzle:studio
+vp run drizzle:studio
 
 # Regenerate Cloudflare type bindings
-pnpm generate-types
+vp run generate-types
 ```
+
+## 🗂️ Project Structure
+
+```text
+app/                         Nuxt app, pages, components, composables, i18n-aware UI
+server/                      Worker handlers, scheduled task, health checks, notifiers
+database/drizzle/schema/     Drizzle table definitions
+database/drizzle/queries/    Database query helpers
+database/migrations/         Generated D1 migrations
+wrangler.toml                Cloudflare Worker, D1, assets, and cron configuration
+nuxt.config.ts               Nuxt, Nitro, i18n, CSS, and scheduled task configuration
+```
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome. Before opening a PR, run:
+
+```sh
+vp check
+vp test
+```
+
+If you change the database schema, generate and include a migration:
+
+```sh
+vp run drizzle:generate
+```
+
+## 📜 License
+
+[AGPL-3.0](./LICENSE)
