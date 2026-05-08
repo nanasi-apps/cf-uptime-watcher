@@ -16,3 +16,6 @@ crons = ["*/5 * * * *"]
 
 [assets]
 directory = ".output/public"
+
+[secrets]
+required = ["AUTH_PASSWORD"]
