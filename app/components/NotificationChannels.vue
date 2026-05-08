@@ -21,7 +21,7 @@
         <div class="flex-1 min-w-0">
           <div class="font-medium text-sm">{{ ch.name }}</div>
           <div class="text-xs text-base-content/50 truncate">
-            {{ ch.template ? "カスタムテンプレート" : "デフォルトテンプレート" }}
+            {{ hasCustomSettings(ch) ? "カスタム設定" : "デフォルト設定" }}
           </div>
         </div>
         <AppButton variant="ghost" size="xs" :loading="testingId === ch.id" @click="testSend(ch)">
@@ -48,7 +48,7 @@
           <AppInput
             v-model="form.webhookUrl"
             label="Webhook URL"
-            type="url"
+            type="text"
             placeholder="https://discord.com/api/webhooks/..."
             required
           />
@@ -57,13 +57,44 @@
         <div class="mb-4">
           <AppCollapsible title="メッセージテンプレート">
             <AppTextarea
-              v-model="form.template"
-              label="テンプレート"
+              v-model="form.downTemplate"
+              label="ダウン時テンプレート"
+              :rows="5"
+              :placeholder="defaultTemplate"
+              monospace
+            />
+            <AppTextarea
+              v-model="form.upTemplate"
+              label="復旧時テンプレート"
               :rows="5"
               :placeholder="defaultTemplate"
               monospace
             />
             <TemplateHelp />
+          </AppCollapsible>
+        </div>
+
+        <div v-if="form.type === 'discord'" class="mb-4">
+          <AppCollapsible title="Discord Payload設定">
+            <AppTextarea
+              v-model="form.discordContent"
+              label="Content"
+              :rows="3"
+              placeholder="{{status}} {{monitor.name}}"
+              monospace
+            />
+            <AppInput v-model="form.discordUsername" label="Username" placeholder="Healthcheck" />
+            <AppInput
+              v-model="form.discordAvatarUrl"
+              label="Avatar URL"
+              type="text"
+              placeholder="https://example.com/avatar.png"
+            />
+            <AppToggle v-model="form.discordTts" label="TTSで送信" />
+            <p class="mt-2 text-xs text-base-content/50">
+              Content、Username、Avatar URL はテンプレート変数を使えます。未入力なら Embed
+              のみ送信します。
+            </p>
           </AppCollapsible>
         </div>
 
@@ -84,18 +115,53 @@
         </div>
 
         <div class="mb-4">
-          <AppInput v-model="editForm.webhookUrl" label="Webhook URL" type="url" required />
+          <AppInput v-model="editForm.webhookUrl" label="Webhook URL" type="text" required />
         </div>
 
         <div class="mb-4">
           <AppTextarea
-            v-model="editForm.template"
-            label="メッセージテンプレート"
+            v-model="editForm.downTemplate"
+            label="ダウン時テンプレート"
+            :rows="5"
+            :placeholder="defaultTemplate"
+            monospace
+          />
+          <AppTextarea
+            v-model="editForm.upTemplate"
+            label="復旧時テンプレート"
             :rows="5"
             :placeholder="defaultTemplate"
             monospace
           />
           <TemplateHelp />
+        </div>
+
+        <div v-if="editForm.type === 'discord'" class="mb-4">
+          <AppCollapsible title="Discord Payload設定">
+            <AppTextarea
+              v-model="editForm.discordContent"
+              label="Content"
+              :rows="3"
+              placeholder="{{status}} {{monitor.name}}"
+              monospace
+            />
+            <AppInput
+              v-model="editForm.discordUsername"
+              label="Username"
+              placeholder="Healthcheck"
+            />
+            <AppInput
+              v-model="editForm.discordAvatarUrl"
+              label="Avatar URL"
+              type="text"
+              placeholder="https://example.com/avatar.png"
+            />
+            <AppToggle v-model="editForm.discordTts" label="TTSで送信" />
+            <p class="mt-2 text-xs text-base-content/50">
+              Content、Username、Avatar URL はテンプレート変数を使えます。未入力なら Embed
+              のみ送信します。
+            </p>
+          </AppCollapsible>
         </div>
 
         <AppAlert v-if="editError" variant="error" class="text-sm mb-4">{{ editError }}</AppAlert>
@@ -116,12 +182,18 @@ interface Channel {
   name: string;
   webhookUrl: string;
   template: string | null;
+  downTemplate: string | null;
+  upTemplate: string | null;
+  discordContent: string | null;
+  discordUsername: string | null;
+  discordAvatarUrl: string | null;
+  discordTts: boolean | null;
   active: boolean;
   createdAt: string;
 }
 
 const defaultTemplate =
-  "[{{status}}] {{monitor.name}}\nURL: {{monitor.url}}\nステータス: {{statusCode}} | 応答: {{responseTime}}\n{{error}}";
+  "[{{status}}] {{monitor.name}}\nURL: {{monitor.url}}\nStatus: {{statusCode}} | Response: {{responseTime}}\n{{error}}";
 
 const channels = ref<Channel[]>([]);
 const showAdd = ref(false);
@@ -136,10 +208,26 @@ const form = ref({
   name: "",
   type: "discord",
   webhookUrl: "",
-  template: "",
+  downTemplate: "",
+  upTemplate: "",
+  discordContent: "",
+  discordUsername: "",
+  discordAvatarUrl: "",
+  discordTts: false,
 });
 
-const editForm = ref({ id: 0, name: "", webhookUrl: "", template: "" });
+const editForm = ref({
+  id: 0,
+  type: "discord",
+  name: "",
+  webhookUrl: "",
+  downTemplate: "",
+  upTemplate: "",
+  discordContent: "",
+  discordUsername: "",
+  discordAvatarUrl: "",
+  discordTts: false,
+});
 
 const typeOptions = [
   { value: "discord", label: "Discord" },
@@ -158,9 +246,24 @@ async function handleCreate() {
       name: form.value.name,
       type: form.value.type as "discord" | "slack",
       webhookUrl: form.value.webhookUrl,
-      template: form.value.template || null,
+      downTemplate: form.value.downTemplate || null,
+      upTemplate: form.value.upTemplate || null,
+      discordContent: form.value.type === "discord" ? form.value.discordContent || null : null,
+      discordUsername: form.value.type === "discord" ? form.value.discordUsername || null : null,
+      discordAvatarUrl: form.value.type === "discord" ? form.value.discordAvatarUrl || null : null,
+      discordTts: form.value.type === "discord" ? form.value.discordTts : null,
     });
-    form.value = { name: "", type: "discord", webhookUrl: "", template: "" };
+    form.value = {
+      name: "",
+      type: "discord",
+      webhookUrl: "",
+      downTemplate: "",
+      upTemplate: "",
+      discordContent: "",
+      discordUsername: "",
+      discordAvatarUrl: "",
+      discordTts: false,
+    };
     showAdd.value = false;
     await load();
   } catch (e) {
@@ -173,9 +276,15 @@ async function handleCreate() {
 function openEdit(ch: Channel) {
   editForm.value = {
     id: ch.id,
+    type: ch.type,
     name: ch.name,
     webhookUrl: ch.webhookUrl,
-    template: ch.template ?? "",
+    downTemplate: ch.downTemplate ?? "",
+    upTemplate: ch.upTemplate ?? "",
+    discordContent: ch.discordContent ?? "",
+    discordUsername: ch.discordUsername ?? "",
+    discordAvatarUrl: ch.discordAvatarUrl ?? "",
+    discordTts: ch.discordTts ?? false,
   };
   editError.value = "";
   showEdit.value = true;
@@ -189,7 +298,15 @@ async function handleUpdate() {
       id: editForm.value.id,
       name: editForm.value.name,
       webhookUrl: editForm.value.webhookUrl,
-      template: editForm.value.template || null,
+      downTemplate: editForm.value.downTemplate || null,
+      upTemplate: editForm.value.upTemplate || null,
+      discordContent:
+        editForm.value.type === "discord" ? editForm.value.discordContent || null : null,
+      discordUsername:
+        editForm.value.type === "discord" ? editForm.value.discordUsername || null : null,
+      discordAvatarUrl:
+        editForm.value.type === "discord" ? editForm.value.discordAvatarUrl || null : null,
+      discordTts: editForm.value.type === "discord" ? editForm.value.discordTts : null,
     });
     showEdit.value = false;
     await load();
@@ -198,6 +315,18 @@ async function handleUpdate() {
   } finally {
     editLoading.value = false;
   }
+}
+
+function hasCustomSettings(ch: Channel) {
+  return !!(
+    ch.template ||
+    ch.downTemplate ||
+    ch.upTemplate ||
+    ch.discordContent ||
+    ch.discordUsername ||
+    ch.discordAvatarUrl ||
+    ch.discordTts
+  );
 }
 
 async function toggleActive(ch: Channel) {

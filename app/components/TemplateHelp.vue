@@ -36,6 +36,9 @@
       <span>ISO タイムスタンプ</span>
     </div>
     <p class="mt-2">
+      ダウン時テンプレートと復旧時テンプレートを個別に設定できます。未入力の場合はデフォルトテンプレートを使用します。
+    </p>
+    <p class="mt-2">
       メンション: Discord <code>&lt;@USER_ID&gt;</code> <code>&lt;@&amp;ROLE_ID&gt;</code> / Slack
       <code>&lt;@USER_ID&gt;</code> <code>&lt;!channel&gt;</code>
     </p>
