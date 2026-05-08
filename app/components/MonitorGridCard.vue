@@ -11,9 +11,6 @@
           <span class="grid-dot" :class="dotClass"></span>
           <div class="min-w-0">
             <div class="font-semibold text-sm truncate">{{ monitor.name }}</div>
-            <div class="text-xs text-base-content/50 truncate mt-0.5">
-              {{ monitor.url }}
-            </div>
           </div>
         </div>
         <ElTag :type="tagType" effect="light" round size="small">{{ statusText }}</ElTag>

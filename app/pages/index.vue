@@ -1,73 +1,71 @@
 <template>
-  <div>
-    <StatsBar :total="monitors.length" :up="upCount" :down="downCount" />
+  <StatsBar :total="monitors.length" :up="upCount" :down="downCount" />
 
-    <div class="flex items-center justify-between mb-4 gap-2">
-      <div v-if="isAdmin" class="flex gap-2">
-        <ElButton plain size="small" type="primary" @click="showImportModal = true">
-          {{ t("common.import") }}
-        </ElButton>
-        <ElButton size="small" type="primary" @click="showCreateModal = true">
-          {{ t("common.addMonitor") }}
-        </ElButton>
-      </div>
-      <div v-else></div>
-
-      <!-- View mode toggle -->
-      <ElSegmented
-        :model-value="viewMode"
-        :options="viewModeOptions"
-        size="small"
-        @update:model-value="handleViewModeChange"
-      />
+  <div class="flex items-center justify-between my-4 gap-2">
+    <div v-if="isAdmin" class="flex gap-2">
+      <ElButton plain size="small" type="primary" @click="showImportModal = true">
+        {{ t("common.import") }}
+      </ElButton>
+      <ElButton size="small" type="primary" @click="showCreateModal = true">
+        {{ t("common.addMonitor") }}
+      </ElButton>
     </div>
+    <div v-else></div>
 
-    <div v-if="loading" class="text-center py-16">
-      <div class="text-2xl mb-2">{{ t("dashboard.loadingTitle") }}</div>
-      <p class="text-base-content/50 m-0">{{ t("dashboard.loadingDescription") }}</p>
-    </div>
-
-    <div v-else-if="monitors.length === 0" class="text-center py-16">
-      <div class="text-4xl mb-3 opacity-20">📡</div>
-      <p class="text-base-content/50 m-0">{{ t("dashboard.empty") }}</p>
-      <p v-if="isAdmin" class="text-base-content/40 text-sm mt-1 mb-0">
-        {{ t("dashboard.emptyAdminHint") }}
-      </p>
-    </div>
-
-    <!-- List view -->
-    <div v-if="viewMode === 'list'" class="monitor-list space-y-3 mb-8">
-      <MonitorCard
-        v-for="monitor in monitors"
-        :key="monitor.id"
-        :monitor="monitor"
-        @click="navigateTo(`/monitors/${monitor.id}`)"
-      />
-    </div>
-
-    <!-- Grid view -->
-    <div v-else class="monitor-grid mb-8">
-      <MonitorGridCard
-        v-for="monitor in monitors"
-        :key="monitor.id"
-        :monitor="monitor"
-        @click="navigateTo(`/monitors/${monitor.id}`)"
-      />
-    </div>
-
-    <CreateMonitorModal
-      v-if="isAdmin"
-      :open="showCreateModal"
-      @close="showCreateModal = false"
-      @created="loadMonitors"
-    />
-    <ImportMonitorsModal
-      v-if="isAdmin"
-      :open="showImportModal"
-      @close="showImportModal = false"
-      @imported="loadMonitors"
+    <!-- View mode toggle -->
+    <ElSegmented
+      :model-value="viewMode"
+      :options="viewModeOptions"
+      size="small"
+      @update:model-value="handleViewModeChange"
     />
   </div>
+
+  <div v-if="loading" class="text-center py-16">
+    <div class="text-2xl mb-2">{{ t("dashboard.loadingTitle") }}</div>
+    <p class="text-base-content/50 m-0">{{ t("dashboard.loadingDescription") }}</p>
+  </div>
+
+  <div v-else-if="monitors.length === 0" class="text-center py-16">
+    <div class="text-4xl mb-3 opacity-20">📡</div>
+    <p class="text-base-content/50 m-0">{{ t("dashboard.empty") }}</p>
+    <p v-if="isAdmin" class="text-base-content/40 text-sm mt-1 mb-0">
+      {{ t("dashboard.emptyAdminHint") }}
+    </p>
+  </div>
+
+  <!-- List view -->
+  <div v-if="viewMode === 'list'" class="monitor-list space-y-3 mb-8">
+    <MonitorCard
+      v-for="monitor in monitors"
+      :key="monitor.id"
+      :monitor="monitor"
+      @click="navigateTo(`/monitors/${monitor.id}`)"
+    />
+  </div>
+
+  <!-- Grid view -->
+  <div v-else class="monitor-grid mb-8">
+    <MonitorGridCard
+      v-for="monitor in monitors"
+      :key="monitor.id"
+      :monitor="monitor"
+      @click="navigateTo(`/monitors/${monitor.id}`)"
+    />
+  </div>
+
+  <CreateMonitorModal
+    v-if="isAdmin"
+    :open="showCreateModal"
+    @close="showCreateModal = false"
+    @created="loadMonitors"
+  />
+  <ImportMonitorsModal
+    v-if="isAdmin"
+    :open="showImportModal"
+    @close="showImportModal = false"
+    @imported="loadMonitors"
+  />
 </template>
 
 <script lang="ts" setup>
