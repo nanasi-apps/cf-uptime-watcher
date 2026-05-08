@@ -184,11 +184,10 @@ const importMonitors = os.monitor.import.handler(async ({ context, input }) => {
 });
 
 // Notification channels (all protected)
-// @ts-ignore - notification.list has different schema
 const listChannels = os.notification.list.handler(async ({ context }) => {
   requireAuth(context);
   return channelQueries.getAllChannels(context.db);
-}) as any;
+});
 
 const createChannel = os.notification.create.handler(async ({ context, input }) => {
   requireAuth(context);
@@ -197,6 +196,12 @@ const createChannel = os.notification.create.handler(async ({ context, input }) 
     name: input.name,
     webhookUrl: input.webhookUrl,
     template: input.template ?? null,
+    downTemplate: input.downTemplate ?? null,
+    upTemplate: input.upTemplate ?? null,
+    discordContent: input.discordContent ?? null,
+    discordUsername: input.discordUsername ?? null,
+    discordAvatarUrl: input.discordAvatarUrl ?? null,
+    discordTts: input.discordTts ?? null,
     active: true,
   });
   return result[0]!;

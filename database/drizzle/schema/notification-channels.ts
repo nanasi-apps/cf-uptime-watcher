@@ -6,6 +6,12 @@ export const notificationChannelTable = sqliteTable("notification_channels", {
   name: text("name").notNull(),
   webhookUrl: text("webhook_url").notNull(),
   template: text("template"), // custom message template with {{variables}}
+  downTemplate: text("down_template"),
+  upTemplate: text("up_template"),
+  discordContent: text("discord_content"),
+  discordUsername: text("discord_username"),
+  discordAvatarUrl: text("discord_avatar_url"),
+  discordTts: integer("discord_tts", { mode: "boolean" }),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at")
     .notNull()

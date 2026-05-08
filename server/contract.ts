@@ -25,6 +25,22 @@ const CheckResultSchema = z.object({
   checkedAt: z.string(),
 });
 
+const NotificationChannelSchema = z.object({
+  id: z.number().int(),
+  type: z.string(),
+  name: z.string(),
+  webhookUrl: z.string(),
+  template: z.string().nullable(),
+  downTemplate: z.string().nullable(),
+  upTemplate: z.string().nullable(),
+  discordContent: z.string().nullable(),
+  discordUsername: z.string().nullable(),
+  discordAvatarUrl: z.string().nullable(),
+  discordTts: z.boolean().nullable(),
+  active: z.boolean(),
+  createdAt: z.string(),
+});
+
 const MonitorWithStatusSchema = MonitorSchema.extend({
   lastCheck: CheckResultSchema.nullable(),
   uptimePercent: z.number().nullable(),
@@ -232,20 +248,7 @@ export const contract = {
           ["Notification"],
         ),
       )
-      .output(
-        z.array(
-          z.object({
-            name: z.string().min(1).max(100),
-            displayName: z.string().min(1).max(100).nullable().optional(), // 公開時に表示する名前
-            url: z.string().url(),
-            method: z.enum(["GET", "POST"]),
-            headers: z.string().nullable().optional(),
-            body: z.string().nullable().optional(),
-            timeout: z.number().int().min(1).max(120).optional(),
-            expectedStatus: z.number().int().min(100).max(599).optional(),
-          }),
-        ),
-      ),
+      .output(z.array(NotificationChannelSchema)),
     create: oc
       .route(
         withBearerAuth(
@@ -260,21 +263,17 @@ export const contract = {
         z.object({
           type: z.enum(["discord", "slack"]),
           name: z.string().min(1).max(100),
-          webhookUrl: z.string().url(),
+          webhookUrl: z.string().min(1),
           template: z.string().nullable().optional(),
+          downTemplate: z.string().nullable().optional(),
+          upTemplate: z.string().nullable().optional(),
+          discordContent: z.string().nullable().optional(),
+          discordUsername: z.string().nullable().optional(),
+          discordAvatarUrl: z.string().nullable().optional(),
+          discordTts: z.boolean().nullable().optional(),
         }),
       )
-      .output(
-        z.object({
-          id: z.number().int(),
-          type: z.string(),
-          name: z.string(),
-          webhookUrl: z.string(),
-          template: z.string().nullable(),
-          active: z.boolean(),
-          createdAt: z.string(),
-        }),
-      ),
+      .output(NotificationChannelSchema),
     update: oc
       .route(
         withBearerAuth(
@@ -289,8 +288,14 @@ export const contract = {
         z.object({
           id: z.coerce.number().int(),
           name: z.string().min(1).max(100).optional(),
-          webhookUrl: z.string().url().optional(),
+          webhookUrl: z.string().min(1).optional(),
           template: z.string().nullable().optional(),
+          downTemplate: z.string().nullable().optional(),
+          upTemplate: z.string().nullable().optional(),
+          discordContent: z.string().nullable().optional(),
+          discordUsername: z.string().nullable().optional(),
+          discordAvatarUrl: z.string().nullable().optional(),
+          discordTts: z.boolean().nullable().optional(),
           active: z.boolean().optional(),
         }),
       )

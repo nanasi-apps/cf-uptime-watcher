@@ -36,6 +36,13 @@
       "when": 1774436321609,
       "tag": "0004_public_mephisto",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1774598400000,
+      "tag": "0005_flexible_webhooks",
+      "breakpoints": true
     }
   ]
 }
