@@ -136,6 +136,7 @@
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: []; created: [] }>();
 const { t } = useI18n();
+const client = useRpcClient();
 
 const form = ref({
   name: "",

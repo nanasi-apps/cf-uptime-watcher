@@ -1,22 +1,20 @@
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
-import type { ContractRouterClient } from "@orpc/contract";
-import type { contract } from "~~/server/contract";
+import type { RouterClient } from "@orpc/server";
+import type { router } from "~~/server/router";
 
-const link = new RPCLink({
-  url: () => {
-    if (typeof window === "undefined") {
-      throw new Error("RPCLink is not allowed on the server side.");
-    }
-    return `${window.location.origin}/rpc`;
-  },
-  headers: () => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("auth_token");
-      if (token) return { authorization: `Bearer ${token}` };
-    }
-    return {};
-  },
-});
+export type RpcClient = RouterClient<typeof router>;
 
-export const client: ContractRouterClient<typeof contract> = createORPCClient(link);
+export function useRpcClient() {
+  return useNuxtApp().$client;
+}
+
+declare module "#app" {
+  interface NuxtApp {
+    $client: RpcClient;
+  }
+}
+
+declare module "vue" {
+  interface ComponentCustomProperties {
+    $client: RpcClient;
+  }
+}

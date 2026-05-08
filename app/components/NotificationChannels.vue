@@ -348,6 +348,7 @@ const saving = ref(false);
 const testingId = ref<number | null>(null);
 const error = ref("");
 const { t } = useI18n();
+const client = useRpcClient();
 
 const form = ref<ChannelForm>(blankForm());
 

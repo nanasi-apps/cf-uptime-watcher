@@ -58,15 +58,14 @@ import type { MonitorWithStatus, CheckResult } from "~/components/types";
 const route = useRoute();
 const monitorId = computed(() => parseMonitorId(route.params.id, route.path));
 const { t } = useI18n();
+const client = useRpcClient();
 
 if (monitorId.value === null) {
   await navigateTo("/");
 }
 
 const { data: monitorData } = await useAsyncData(`monitor-${monitorId.value ?? "invalid"}`, () =>
-  $fetch<{ monitor: MonitorWithStatus | null; history: CheckResult[] }>(
-    `/api/monitors/${monitorId.value}`,
-  ),
+  loadMonitorData(),
 );
 
 const monitor = ref<MonitorWithStatus | null>(monitorData.value?.monitor ?? null);
@@ -86,19 +85,27 @@ function parseMonitorId(param: unknown, path: string) {
 async function loadMonitor() {
   if (monitorId.value === null) return;
 
-  const data = await $fetch<{ monitor: MonitorWithStatus | null; history: CheckResult[] }>(
-    `/api/monitors/${monitorId.value}`,
-  );
-  monitor.value = data.monitor;
+  monitor.value = await client.monitor.get({ id: monitorId.value });
 }
 
 async function loadHistory() {
   if (monitorId.value === null) return;
 
-  const data = await $fetch<{ monitor: MonitorWithStatus | null; history: CheckResult[] }>(
-    `/api/monitors/${monitorId.value}`,
-  );
-  history.value = data.history;
+  history.value = await client.monitor.history({ id: monitorId.value, limit: 200 });
+}
+
+async function loadMonitorData(): Promise<{
+  monitor: MonitorWithStatus | null;
+  history: CheckResult[];
+}> {
+  if (monitorId.value === null) return { monitor: null, history: [] };
+
+  const [monitor, history] = await Promise.all([
+    client.monitor.get({ id: monitorId.value }),
+    client.monitor.history({ id: monitorId.value, limit: 200 }),
+  ]);
+
+  return { monitor, history };
 }
 
 async function checkNow() {

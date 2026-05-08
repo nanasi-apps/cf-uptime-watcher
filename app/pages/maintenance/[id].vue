@@ -77,6 +77,7 @@ import type { MaintenanceEvent, MonitorWithStatus } from "~/components/types";
 
 const route = useRoute();
 const { t } = useI18n();
+const client = useRpcClient();
 
 const maintenanceId = computed(() => parseMaintenanceId(route.params.id, route.path));
 if (maintenanceId.value === null) {
@@ -85,10 +86,7 @@ if (maintenanceId.value === null) {
 
 const { data: maintenanceData, pending: loading } = await useAsyncData(
   `maintenance-${maintenanceId.value ?? "invalid"}`,
-  () =>
-    $fetch<{ maintenance: MaintenanceEvent | null; monitors: MonitorWithStatus[] }>(
-      `/api/maintenance/${maintenanceId.value}`,
-    ),
+  () => loadMaintenanceData(),
 );
 
 const maintenance = computed(() => maintenanceData.value?.maintenance ?? null);
@@ -130,6 +128,20 @@ function parseMaintenanceId(param: unknown, path: string) {
 
   const match = path.match(/^\/maintenance\/(\d+)(?:\/|$)/);
   return match ? Number(match[1]) : null;
+}
+
+async function loadMaintenanceData(): Promise<{
+  maintenance: MaintenanceEvent | null;
+  monitors: MonitorWithStatus[];
+}> {
+  if (maintenanceId.value === null) return { maintenance: null, monitors: [] };
+
+  const [maintenance, monitors] = await Promise.all([
+    client.statusInfo.getMaintenance({ id: maintenanceId.value }),
+    client.monitor.list(),
+  ]);
+
+  return { maintenance, monitors };
 }
 
 function formatDate(iso: string) {

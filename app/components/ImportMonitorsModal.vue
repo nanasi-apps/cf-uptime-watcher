@@ -153,6 +153,7 @@ const loading = ref(false);
 const error = ref("");
 const result = ref<ImportResult | null>(null);
 const { t } = useI18n();
+const client = useRpcClient();
 
 watch(
   () => props.open,

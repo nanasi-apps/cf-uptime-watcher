@@ -31,6 +31,7 @@ interface Channel {
 
 const props = defineProps<{ monitorId: number; channelIds: number[] }>();
 const { t } = useI18n();
+const client = useRpcClient();
 
 const allChannels = ref<Channel[]>([]);
 const selectedIds = ref(new Set<number>());

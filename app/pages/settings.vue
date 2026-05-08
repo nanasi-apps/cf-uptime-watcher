@@ -555,9 +555,9 @@ type SettingsData = {
   channels: Channel[];
 };
 
-const { data: settingsData } = await useAsyncData("settings-data", () =>
-  $fetch<SettingsData>("/api/settings").catch(() => null),
-);
+const client = useRpcClient();
+
+const { data: settingsData } = await useAsyncData("settings-data", () => loadSettingsData());
 
 const activeTab = ref<"monitors" | "channels" | "bulk" | "maintenance" | "incidents">("monitors");
 const { t } = useI18n();
@@ -597,6 +597,20 @@ const methodOptions = [
   { value: "GET", label: "GET" },
   { value: "POST", label: "POST" },
 ];
+
+async function loadSettingsData(): Promise<SettingsData | null> {
+  try {
+    const [monitors, statusInfo, channels] = await Promise.all([
+      client.monitor.list(),
+      client.statusInfo.get(),
+      client.notification.list(),
+    ]);
+
+    return { monitors, statusInfo, channels };
+  } catch {
+    return null;
+  }
+}
 
 const headersRef = computed({
   get: () => editForm.value.headers,

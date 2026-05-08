@@ -1,7 +1,7 @@
-import { createError, defineEventHandler, getHeader, toWebRequest } from "h3";
+import { createError, defineEventHandler, toWebRequest } from "h3";
 import { RPCHandler } from "@orpc/server/fetch";
 import { router } from "../../router";
-import { dbD1 } from "../../../database/drizzle/db";
+import { getAuthToken, getDb } from "../../utils/request-context";
 
 const rpcHandler = new RPCHandler(router);
 
@@ -12,9 +12,9 @@ export default defineEventHandler(async (event) => {
   const { matched, response } = await rpcHandler.handle(request, {
     prefix: "/rpc",
     context: {
-      db: dbD1(env.DB),
+      db: getDb(event),
       password: env.AUTH_PASSWORD,
-      authToken: getHeader(event, "authorization")?.replace("Bearer ", "") ?? null,
+      authToken: getAuthToken(event),
     },
   });
 

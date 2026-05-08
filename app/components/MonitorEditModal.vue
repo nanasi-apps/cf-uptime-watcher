@@ -123,6 +123,7 @@ import type { MonitorWithStatus } from "./types";
 const props = defineProps<{ open: boolean; monitor: MonitorWithStatus | null }>();
 const emit = defineEmits<{ close: []; updated: [] }>();
 const { t } = useI18n();
+const client = useRpcClient();
 
 const form = ref({
   name: "",

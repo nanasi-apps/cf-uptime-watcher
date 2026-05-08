@@ -84,8 +84,10 @@ type DashboardData = {
   isAdmin: boolean;
 };
 
+const client = useRpcClient();
+
 const { data: dashboardData, pending: loading } = await useAsyncData("dashboard", () =>
-  $fetch<DashboardData>("/api/dashboard"),
+  loadDashboardData(),
 );
 
 const monitors = ref<MonitorWithStatus[]>(dashboardData.value?.monitors ?? []);
@@ -118,10 +120,23 @@ const isAllSystemsUp = computed(
 );
 
 async function refreshDashboard() {
-  const data = await $fetch<DashboardData>("/api/dashboard");
+  const data = await loadDashboardData();
   monitors.value = data.monitors;
   statusInfo.value = data.statusInfo;
   isAdmin.value = data.isAdmin || Boolean(localStorage.getItem("auth_token"));
+}
+
+async function loadDashboardData(): Promise<DashboardData> {
+  const [monitors, statusInfo, isAdmin] = await Promise.all([
+    client.monitor.list(),
+    client.statusInfo.get(),
+    client.auth
+      .verify()
+      .then(() => true)
+      .catch(() => false),
+  ]);
+
+  return { monitors, statusInfo, isAdmin };
 }
 
 async function loadMonitors() {

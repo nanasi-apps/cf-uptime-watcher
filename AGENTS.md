@@ -21,10 +21,10 @@
 
 ## API And Data
 
-- The executable API path is oRPC under `/rpc` (`server/routes/rpc/[...].ts` with `prefix: "/rpc"`). If README `/api/...` examples conflict, trust `server/contract.ts`, `server/router.ts`, and the client in `app/utils/rpc-client.ts`.
+- The executable API path is oRPC under `/rpc` (`server/routes/rpc/[...].ts` with `prefix: "/rpc"`). If README `/api/...` examples conflict, trust `server/contract.ts`, `server/router.ts`, and the Nuxt oRPC plugins in `app/plugins/orpc.client.ts` and `app/plugins/orpc.server.ts`.
 - Internal `/api` routes are incorrect for this project. Do not add, keep, or call `server/api/*` endpoints for app data; expose and consume all internal application APIs through oRPC instead.
 - API contracts and OpenAPI metadata are declared in `server/contract.ts`; handlers are implemented in `server/router.ts`. Update both sides together.
-- Browser calls should go through the typed oRPC client in `app/utils/rpc-client.ts`; it reads `auth_token` from `localStorage` and sends `Authorization: Bearer <token>`.
+- App code should access the typed oRPC client through `useRpcClient()`. The browser plugin reads `auth_token` from `localStorage` and sends `Authorization: Bearer <token>`; the server plugin uses `createRouterClient` for SSR.
 - Write operations compare the bearer token to `AUTH_PASSWORD`; local dev uses `.dev.vars` and production uses Cloudflare secrets.
 - Drizzle schema is in `database/drizzle/schema/*`, query helpers in `database/drizzle/queries/*`, and generated migrations in `database/migrations`.
 - After schema changes, run `vp run drizzle:generate`; apply local migrations with `vp exec wrangler d1 migrations apply healthcheck --local` and remote migrations with `vp run drizzle:migrate`.
