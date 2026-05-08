@@ -53,7 +53,70 @@ describe("buildDiscordPayload", () => {
       username: "Healthcheck",
       avatar_url: "https://example.com/avatar.png",
       tts: true,
+      allowed_mentions: { parse: [] },
       embeds: [{ description: expect.stringContaining("[DOWN] API") }],
     });
+  });
+
+  test("builds extended embed, mention, flag, and thread fields", () => {
+    const body = buildDiscordPayload(
+      {
+        discordEmbedTitle: "{{monitor.name}} alert",
+        discordEmbedDescription: "Custom {{status}} description",
+        discordEmbedUrl: "{{monitor.url}}",
+        discordEmbedColor: "#336699",
+        discordEmbedAuthorName: "{{monitor.name}} author",
+        discordEmbedAuthorUrl: "{{monitor.url}}",
+        discordEmbedAuthorIconUrl: "https://example.com/author.png",
+        discordEmbedThumbnailUrl: "https://example.com/thumb.png",
+        discordEmbedImageUrl: "https://example.com/image.png",
+        discordEmbedFooterText: "{{responseTime}}",
+        discordEmbedFooterIconUrl: "https://example.com/footer.png",
+        discordEmbedTimestamp: false,
+        discordAllowUserMentions: true,
+        discordAllowRoleMentions: true,
+        discordSuppressEmbeds: true,
+        discordSuppressNotifications: true,
+        discordThreadName: "{{monitor.name}} incidents",
+        discordAppliedTags: "111, 222 333",
+      },
+      payload,
+    );
+
+    expect(body).toMatchObject({
+      allowed_mentions: { parse: ["users", "roles"] },
+      flags: 4100,
+      thread_name: "API incidents",
+      applied_tags: ["111", "222", "333"],
+      embeds: [
+        {
+          title: "API alert",
+          description: "Custom DOWN description",
+          url: "https://example.com/health",
+          color: 0x336699,
+          author: {
+            name: "API author",
+            url: "https://example.com/health",
+            icon_url: "https://example.com/author.png",
+          },
+          thumbnail: { url: "https://example.com/thumb.png" },
+          image: { url: "https://example.com/image.png" },
+          footer: { text: "123ms", icon_url: "https://example.com/footer.png" },
+        },
+      ],
+    });
+
+    if (!Array.isArray(body.embeds) || typeof body.embeds[0] !== "object" || !body.embeds[0]) {
+      throw new Error("Expected embeds to include one object");
+    }
+
+    expect(body.embeds[0].timestamp).toBeUndefined();
+  });
+
+  test("falls back to content when embeds are disabled", () => {
+    const body = buildDiscordPayload({ discordEmbedEnabled: false }, payload);
+
+    expect(body.content).toEqual(expect.stringContaining("[DOWN] API"));
+    expect(body.embeds).toBeUndefined();
   });
 });
