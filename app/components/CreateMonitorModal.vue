@@ -13,19 +13,19 @@
       @submit.prevent="handleSubmit"
     >
       <!-- Name & URL -->
-      <div class="mb-4">
+      <div class="form-block">
         <ElFormItem :label="t('monitorForm.name')" required
           ><ElInput v-model="form.name" placeholder="My API" required
         /></ElFormItem>
       </div>
 
-      <div class="mb-4">
+      <div class="form-block">
         <ElFormItem :label="t('monitorForm.displayName')"
           ><ElInput v-model="form.displayName" placeholder="My Service Monitor"
         /></ElFormItem>
       </div>
 
-      <div class="mb-4">
+      <div class="form-block">
         <ElFormItem :label="t('monitorForm.url')" required
           ><ElInput
             v-model="form.url"
@@ -36,9 +36,9 @@
       </div>
 
       <!-- Method & Timeout -->
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="form-grid form-block">
         <ElFormItem :label="t('monitorForm.method')"
-          ><ElSelect v-model="form.method" class="w-full"
+          ><ElSelect v-model="form.method" class="full-width"
             ><ElOption
               v-for="option in methodOptions"
               :key="option.value"
@@ -58,7 +58,7 @@
       </div>
 
       <!-- Expected Status -->
-      <div class="mb-4">
+      <div class="form-block">
         <ElFormItem :label="t('monitorForm.expectedStatus')"
           ><ElInput
             v-model="form.expectedStatus"
@@ -71,11 +71,11 @@
 
       <!-- POST body (conditional) -->
       <div v-if="form.method === 'POST'">
-        <div class="mb-4">
+        <div class="form-block">
           <ElFormItem label="Content-Type"
             ><ElSelect
               :model-value="selectedContentType"
-              class="w-full"
+              class="full-width"
               @update:model-value="handleContentTypeChange"
               ><ElOption
                 v-for="option in contentTypeOptions"
@@ -85,7 +85,7 @@
           ></ElFormItem>
         </div>
 
-        <div class="mb-4">
+        <div class="form-block">
           <ElCollapse
             ><ElCollapseItem :title="t('monitorForm.requestBody')"
               ><ElFormItem :label="t('monitorForm.body')"
@@ -99,7 +99,7 @@
       </div>
 
       <!-- Headers (collapsible) -->
-      <div class="mb-4">
+      <div class="form-block">
         <ElCollapse
           ><ElCollapseItem :title="t('monitorForm.customHeaders')"
             ><ElFormItem :label="t('monitorForm.headers')"
@@ -115,14 +115,14 @@
       <ElAlert
         v-if="error"
         :closable="false"
-        class="text-sm mb-4"
+        class="form-alert"
         :title="error"
         type="error"
         show-icon
       />
 
       <!-- Actions -->
-      <div class="flex justify-end gap-2 mt-6">
+      <div class="form-actions">
         <ElButton text type="primary" @click="$emit('close')">{{ t("common.cancel") }}</ElButton>
         <ElButton native-type="submit" type="primary" :loading="loading">{{
           t("common.create")
@@ -217,11 +217,43 @@ async function handleSubmit() {
   min-width: 0;
 }
 
+.form-block {
+  margin-bottom: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.form-alert {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
 .aligned-form :deep(.el-collapse-item__header) {
   padding: 0 1rem;
 }
 
 .aligned-form :deep(.el-collapse-item__content) {
   padding: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

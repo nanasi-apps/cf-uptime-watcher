@@ -4,7 +4,7 @@
       <div class="settings-header-row">
         <div>
           <h1 class="text-2xl font-bold m-0">{{ t("settings.title") }}</h1>
-          <p class="text-sm text-base-content/50 mt-2 mb-0">
+          <p class="text-sm app-muted mt-2 mb-0">
             {{ t("settings.description") }}
           </p>
         </div>
@@ -13,16 +13,16 @@
     </header>
 
     <!-- Tabs -->
-    <ElSegmented v-model="activeTab" :options="tabOptions" class="mb-6" />
+    <ElSegmented v-model="activeTab" :options="tabOptions" class="mb-6" name="settings-tabs" />
 
     <!-- Monitor settings tab -->
     <div v-if="activeTab === 'monitors'" class="settings-layout">
       <!-- Left: Monitor list -->
-      <div class="settings-sidebar bg-base-100">
+      <ElCard :body-style="{ padding: 0 }" class="settings-sidebar" shadow="never">
         <div class="sidebar-header">
           <span class="text-sm font-semibold">{{ t("settings.monitorList") }}</span>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-base-content/40">{{
+            <span class="text-xs app-subtle">{{
               t("settings.count", { count: monitors.length })
             }}</span>
             <ElButton plain size="small" type="primary" @click="showImportModal = true">
@@ -48,15 +48,15 @@
             ></span>
             <span class="truncate text-sm">{{ m.name }}</span>
           </ElButton>
-          <div v-if="monitors.length === 0" class="text-center text-sm text-base-content/40 py-8">
+          <div v-if="monitors.length === 0" class="text-center text-sm app-subtle py-8">
             {{ t("settings.emptyMonitors") }}
           </div>
         </div>
-      </div>
+      </ElCard>
 
       <!-- Right: Monitor settings form -->
-      <div class="settings-content bg-base-100">
-        <div v-if="monitorPaneMode === 'idle'" class="text-center text-base-content/40 py-16">
+      <ElCard :body-style="{ padding: '1.25rem' }" class="settings-content" shadow="never">
+        <div v-if="monitorPaneMode === 'idle'" class="text-center app-subtle py-16">
           {{ t("settings.selectMonitorHint") }}
         </div>
         <template v-else>
@@ -69,7 +69,7 @@
                     : selectedMonitor?.name
                 }}
               </h2>
-              <p class="text-sm text-base-content/50 mt-1 mb-0">
+              <p class="text-sm app-muted mt-1 mb-0">
                 {{
                   monitorPaneMode === "create"
                     ? t("settings.createMonitorDescription")
@@ -171,7 +171,7 @@
               <!-- Channel selector inline -->
               <div v-if="monitorPaneMode === 'edit'" class="settings-section">
                 <h3 class="text-sm font-semibold mb-2">{{ t("channels.title") }}</h3>
-                <div v-if="channels.length === 0" class="text-sm text-base-content/40">
+                <div v-if="channels.length === 0" class="text-sm app-subtle">
                   {{ t("settings.noChannels") }}
                 </div>
                 <div class="space-y-1">
@@ -213,7 +213,7 @@
             </div>
           </ElForm>
         </template>
-      </div>
+      </ElCard>
     </div>
 
     <!-- Notification channels tab -->
@@ -223,16 +223,16 @@
 
     <!-- Bulk webhook assignment tab -->
     <div v-if="activeTab === 'bulk'" class="bulk-section">
-      <ElCard :body-style="{ padding: 0 }" class="settings-card bg-base-100" shadow="never">
+      <ElCard :body-style="{ padding: '1.25rem' }" class="settings-card" shadow="never">
         <h2 class="text-lg font-bold mb-4">{{ t("settings.bulkTitle") }}</h2>
-        <p class="text-sm text-base-content/50 mb-4">
+        <p class="text-sm app-muted mb-4">
           {{ t("settings.bulkDescription") }}
         </p>
 
         <!-- Channel selection -->
         <div class="mb-6">
           <h3 class="text-sm font-semibold mb-2">{{ t("settings.bulkChannels") }}</h3>
-          <div v-if="channels.length === 0" class="text-sm text-base-content/40">
+          <div v-if="channels.length === 0" class="text-sm app-subtle">
             {{ t("settings.bulkNoChannels") }}
           </div>
           <div class="space-y-1">
@@ -310,19 +310,20 @@
       </ElCard>
     </div>
 
-    <ImportMonitorsModal
-      :open="showImportModal"
-      @close="showImportModal = false"
-      @imported="loadMonitors"
-    />
+    <ClientOnly>
+      <ImportMonitorsModal
+        v-if="showImportModal"
+        :open="showImportModal"
+        @close="showImportModal = false"
+        @imported="loadMonitors"
+      />
+    </ClientOnly>
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { MonitorWithStatus } from "~/components/types";
-
-definePageMeta({ middleware: "auth" });
 
 type MonitorPaneMode = "idle" | "create" | "edit";
 
@@ -655,7 +656,7 @@ onMounted(async () => {
 
 .settings-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr);
   gap: 1.5rem;
   min-height: 500px;
 }
@@ -667,8 +668,6 @@ onMounted(async () => {
 }
 
 .settings-sidebar {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
   overflow: hidden;
   align-self: start;
 }
@@ -743,9 +742,6 @@ onMounted(async () => {
 }
 
 .settings-content {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
   align-self: start;
 }
 
@@ -795,12 +791,5 @@ onMounted(async () => {
 
 .channel-row:hover {
   background: var(--surface-hover);
-}
-
-.settings-card,
-.bulk-section .settings-card {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  padding: 1.25rem;
 }
 </style>

@@ -1,10 +1,10 @@
 <template>
   <div class="notification-settings-layout">
-    <div class="notification-sidebar bg-base-100">
+    <ElCard :body-style="{ padding: 0 }" class="notification-sidebar" shadow="never">
       <div class="sidebar-header">
         <span class="text-sm font-semibold">{{ t("notifications.listTitle") }}</span>
         <div class="flex items-center gap-2">
-          <span class="text-xs text-base-content/40">{{
+          <span class="text-xs app-subtle">{{
             t("settings.count", { count: channels.length })
           }}</span>
           <ElButton size="small" type="primary" @click="startCreate">{{
@@ -35,7 +35,7 @@
               </ElTag>
               <span class="truncate text-sm font-medium">{{ ch.name }}</span>
             </div>
-            <div class="mt-1 truncate text-xs text-base-content/50">
+            <div class="mt-1 truncate text-xs app-muted">
               {{
                 hasCustomSettings(ch)
                   ? t("notifications.customSettings")
@@ -45,17 +45,14 @@
           </div>
         </ElButton>
 
-        <div
-          v-if="channels.length === 0"
-          class="px-4 py-8 text-center text-sm text-base-content/40"
-        >
+        <div v-if="channels.length === 0" class="px-4 py-8 text-center text-sm app-subtle">
           {{ t("notifications.empty") }}
         </div>
       </div>
-    </div>
+    </ElCard>
 
-    <div class="notification-content bg-base-100">
-      <div v-if="paneMode === 'idle'" class="py-16 text-center text-base-content/40">
+    <ElCard :body-style="{ padding: '1.25rem' }" class="notification-content" shadow="never">
+      <div v-if="paneMode === 'idle'" class="py-16 text-center app-subtle">
         {{ t("notifications.idle") }}
       </div>
 
@@ -69,7 +66,7 @@
                   : form.name || t("notifications.editTitle")
               }}
             </h2>
-            <p class="mt-1 mb-0 text-sm text-base-content/50">
+            <p class="mt-1 mb-0 text-sm app-muted">
               {{
                 paneMode === "create"
                   ? t("notifications.createDescription")
@@ -115,8 +112,8 @@
                   :label="option.label"
                   :value="option.value" /></ElSelect
             ></ElFormItem>
-            <div v-else class="flex items-center gap-2 rounded-lg bg-base-200 p-3">
-              <span class="text-sm text-base-content/50">{{ t("notifications.type") }}</span>
+            <div v-else class="flex items-center gap-2 rounded-lg app-card-muted p-3">
+              <span class="text-sm app-muted">{{ t("notifications.type") }}</span>
               <ElTag
                 :type="form.type === 'discord' ? 'primary' : 'info'"
                 effect="light"
@@ -169,7 +166,7 @@
                     <ElFormItem :label="t('notifications.tts')">
                       <div>
                         <ElSwitch v-model="form.discordTts" />
-                        <p class="mt-1 mb-0 text-xs text-base-content/50">
+                        <p class="mt-1 mb-0 text-xs app-muted">
                           {{ t("notifications.ttsHelp") }}
                         </p>
                       </div>
@@ -242,7 +239,7 @@
                     /></label>
                   </div>
 
-                  <p class="text-xs text-base-content/50">
+                  <p class="text-xs app-muted">
                     {{ t("notifications.discordNote") }}
                   </p>
                 </div>
@@ -272,7 +269,7 @@
           </div>
         </ElForm>
       </template>
-    </div>
+    </ElCard>
   </div>
 </template>
 
@@ -600,17 +597,11 @@ onMounted(load);
 
 .notification-sidebar,
 .notification-content {
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
   align-self: start;
 }
 
 .notification-sidebar {
   overflow: hidden;
-}
-
-.notification-content {
-  padding: 1.25rem;
 }
 
 .sidebar-header {

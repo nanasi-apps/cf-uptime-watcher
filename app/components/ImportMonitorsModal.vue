@@ -6,9 +6,9 @@
     align-center
     @close="handleClose"
   >
-    <div v-if="!result" class="space-y-4">
+    <div v-if="!result" class="import-panel">
       <div>
-        <p class="mb-2 text-sm font-medium">{{ t("import.jsonFile") }}</p>
+        <p class="import-label">{{ t("import.jsonFile") }}</p>
         <ElUpload
           ref="uploadRef"
           accept=".json,application/json"
@@ -20,28 +20,24 @@
         </ElUpload>
       </div>
 
-      <div class="form-control">
-        <label class="inline-flex items-center gap-3"
-          ><span class="text-sm">{{ t("import.skipDuplicates") }}</span
+      <div>
+        <label class="switch-row"
+          ><span class="import-text">{{ t("import.skipDuplicates") }}</span
           ><ElSwitch v-model="skipDuplicates"
         /></label>
       </div>
 
-      <div v-if="preview.length > 0" class="bg-base-200 rounded-lg p-4">
-        <h4 class="font-medium text-sm mb-2">
+      <div v-if="preview.length > 0" class="import-preview">
+        <h4 class="import-preview-title">
           {{ t("import.preview", { count: preview.length }) }}
         </h4>
-        <div class="max-h-48 overflow-y-auto space-y-1">
-          <div
-            v-for="(item, i) in preview.slice(0, 10)"
-            :key="i"
-            class="text-xs flex items-center gap-2"
-          >
+        <div class="import-preview-list preview-short">
+          <div v-for="(item, i) in preview.slice(0, 10)" :key="i" class="import-row">
             <ElTag type="info" effect="plain" round size="small">{{ item.method }}</ElTag>
-            <span class="truncate">{{ item.name }}</span>
-            <span class="text-base-content/50 truncate flex-1">{{ item.url }}</span>
+            <span class="import-row-title">{{ item.name }}</span>
+            <span class="import-row-detail">{{ item.url }}</span>
           </div>
-          <div v-if="preview.length > 10" class="text-xs text-base-content/50 text-center py-2">
+          <div v-if="preview.length > 10" class="import-more">
             {{ t("import.more", { count: preview.length - 10 }) }}
           </div>
         </div>
@@ -50,13 +46,13 @@
       <ElAlert
         v-if="error"
         :closable="false"
-        class="text-sm"
+        class="import-alert"
         :title="error"
         type="error"
         show-icon
       />
 
-      <div class="flex justify-end gap-2 mt-6">
+      <div class="import-actions">
         <ElButton text type="primary" @click="handleClose">{{ t("common.cancel") }}</ElButton>
         <ElButton
           type="primary"
@@ -73,29 +69,26 @@
       </div>
     </div>
 
-    <div v-else class="space-y-4">
-      <div class="flex gap-4">
-        <ElCard class="flex-1" shadow="never">
+    <div v-else class="import-panel">
+      <div class="import-stats">
+        <ElCard class="import-stat" shadow="never">
           <ElStatistic :title="t('import.imported')" :value="result.imported" />
         </ElCard>
-        <ElCard class="flex-1" shadow="never">
+        <ElCard class="import-stat" shadow="never">
           <ElStatistic :title="t('import.skipped')" :value="result.skipped" />
         </ElCard>
-        <ElCard class="flex-1" shadow="never">
+        <ElCard class="import-stat" shadow="never">
           <ElStatistic :title="t('import.errors')" :value="result.errors" />
         </ElCard>
       </div>
 
-      <div
-        v-if="result.details.some((d) => d.status !== 'imported')"
-        class="bg-base-200 rounded-lg p-4"
-      >
-        <h4 class="font-medium text-sm mb-2">{{ t("import.details") }}</h4>
-        <div class="max-h-64 overflow-y-auto space-y-1">
+      <div v-if="result.details.some((d) => d.status !== 'imported')" class="import-preview">
+        <h4 class="import-preview-title">{{ t("import.details") }}</h4>
+        <div class="import-preview-list preview-tall">
           <div
             v-for="(detail, i) in result.details.filter((d) => d.status !== 'imported')"
             :key="i"
-            class="text-xs flex items-center gap-2"
+            class="import-row"
           >
             <ElTag
               :type="detail.status === 'skipped' ? 'warning' : 'danger'"
@@ -105,15 +98,15 @@
             >
               {{ detail.status === "skipped" ? t("import.skipped") : t("import.errors") }}
             </ElTag>
-            <span class="truncate">{{ detail.name }}</span>
-            <span v-if="detail.message" class="text-base-content/50 truncate flex-1">
+            <span class="import-row-title">{{ detail.name }}</span>
+            <span v-if="detail.message" class="import-row-detail">
               {{ detail.message }}
             </span>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 mt-6">
+      <div class="import-actions">
         <ElButton type="primary" @click="handleClose">{{ t("common.done") }}</ElButton>
       </div>
     </div>
@@ -247,3 +240,98 @@ async function handleImport() {
   }
 }
 </script>
+
+<style scoped>
+.import-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.import-label,
+.import-preview-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.switch-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.import-text,
+.import-alert {
+  font-size: 0.875rem;
+}
+
+.import-preview {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: var(--app-surface-muted);
+}
+
+.import-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+}
+
+.preview-short {
+  max-height: 12rem;
+}
+
+.preview-tall {
+  max-height: 16rem;
+}
+
+.import-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.import-row-title,
+.import-row-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-row-detail {
+  flex: 1;
+  color: var(--app-text-muted);
+}
+
+.import-more {
+  padding: 0.5rem 0;
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.import-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.import-stat {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .import-stats {
+    flex-direction: column;
+  }
+}
+</style>
