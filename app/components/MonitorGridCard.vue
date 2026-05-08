@@ -55,6 +55,7 @@ import type { CheckResult, MonitorWithStatus } from "./types";
 
 const props = defineProps<{ monitor: MonitorWithStatus }>();
 defineEmits<{ click: [] }>();
+const { t } = useI18n();
 
 const { status, uptimeColorClass } = useMonitorStatus(
   () => props.monitor.lastCheck,
@@ -72,11 +73,11 @@ const dotClass = computed(() => {
 
 const statusText = computed(() => {
   const map: Record<string, string> = {
-    up: "稼働中",
-    down: "停止",
-    pending: "待機中",
+    up: "status.up",
+    down: "status.down",
+    pending: "status.pending",
   };
-  return map[status.value];
+  return t(map[status.value]);
 });
 
 const tagType = computed(() => {
@@ -95,9 +96,11 @@ const bars = computed(() => {
 
 function barTooltip(check: CheckResult) {
   const time = new Date(check.checkedAt).toLocaleString();
-  const s = check.isUp ? "稼働中" : "停止";
-  const rt = check.responseTime ? ` (${check.responseTime}ms)` : "";
-  return `${time} - ${s}${rt}`;
+  const s = check.isUp ? t("status.up") : t("status.down");
+  const rt = check.responseTime
+    ? t("monitor.responseTimeSuffix", { time: check.responseTime })
+    : "";
+  return t("monitor.tooltip", { time, status: s, responseTime: rt });
 }
 </script>
 

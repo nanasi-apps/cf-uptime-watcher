@@ -5,10 +5,10 @@
     <div class="flex items-center justify-between mb-4 gap-2">
       <div v-if="isAdmin" class="flex gap-2">
         <ElButton plain size="small" type="primary" @click="showImportModal = true">
-          インポート
+          {{ t("common.import") }}
         </ElButton>
         <ElButton size="small" type="primary" @click="showCreateModal = true">
-          + モニター追加
+          {{ t("common.addMonitor") }}
         </ElButton>
       </div>
       <div v-else></div>
@@ -23,15 +23,15 @@
     </div>
 
     <div v-if="loading" class="text-center py-16">
-      <div class="text-2xl mb-2">ロード中…</div>
-      <p class="text-base-content/50 m-0">読み込み中です。しばらくお待ちください。</p>
+      <div class="text-2xl mb-2">{{ t("dashboard.loadingTitle") }}</div>
+      <p class="text-base-content/50 m-0">{{ t("dashboard.loadingDescription") }}</p>
     </div>
 
     <div v-else-if="monitors.length === 0" class="text-center py-16">
       <div class="text-4xl mb-3 opacity-20">📡</div>
-      <p class="text-base-content/50 m-0">モニターがまだありません。</p>
+      <p class="text-base-content/50 m-0">{{ t("dashboard.empty") }}</p>
       <p v-if="isAdmin" class="text-base-content/40 text-sm mt-1 mb-0">
-        「+ モニター追加」ボタンから追加してください。
+        {{ t("dashboard.emptyAdminHint") }}
       </p>
     </div>
 
@@ -79,10 +79,11 @@ const showImportModal = ref(false);
 const isAdmin = ref(false);
 
 const { viewMode, init: initViewMode, set: setViewMode } = useViewMode();
-const viewModeOptions = [
-  { label: "リスト", value: "list" },
-  { label: "グリッド", value: "grid" },
-];
+const { t } = useI18n();
+const viewModeOptions = computed(() => [
+  { label: t("dashboard.viewList"), value: "list" },
+  { label: t("dashboard.viewGrid"), value: "grid" },
+]);
 
 const upCount = computed(() => monitors.value.filter((m) => m.lastCheck?.isUp).length);
 const downCount = computed(

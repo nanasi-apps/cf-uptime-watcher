@@ -6,6 +6,7 @@ export function useMonitorStatus(
   lastCheck: MaybeRefOrGetter<CheckResult | null>,
   uptimePercent: MaybeRefOrGetter<number | null>,
 ) {
+  const { t } = useI18n();
   const status = computed<"up" | "down" | "pending">(() => {
     const check = toValue(lastCheck);
     if (!check) return "pending";
@@ -31,12 +32,15 @@ export function useMonitorStatus(
   });
 
   const statusText = computed(() => {
-    const map: Record<string, string> = {
-      up: "稼働中",
-      down: "停止",
-      pending: "待機中",
-    };
-    return map[status.value];
+    if (status.value === "up") return t("status.up");
+    if (status.value === "down") return t("status.down");
+    return t("status.pending");
+  });
+
+  const statusLabelKey = computed(() => {
+    if (status.value === "up") return "status.up";
+    if (status.value === "down") return "status.down";
+    return "status.pending";
   });
 
   const uptimeColorClass = computed(() => {
@@ -47,5 +51,5 @@ export function useMonitorStatus(
     return "text-error";
   });
 
-  return { statusColor, statusVariant, statusText, status, uptimeColorClass };
+  return { statusColor, statusVariant, statusText, statusLabelKey, status, uptimeColorClass };
 }

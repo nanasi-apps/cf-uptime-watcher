@@ -1,7 +1,7 @@
 <template>
   <ElDialog
     :model-value="open"
-    title="モニター追加"
+    :title="t('monitorForm.createTitle')"
     width="32rem"
     align-center
     @close="$emit('close')"
@@ -14,19 +14,19 @@
     >
       <!-- Name & URL -->
       <div class="mb-4">
-        <ElFormItem label="名前（内部用）" required
+        <ElFormItem :label="t('monitorForm.name')" required
           ><ElInput v-model="form.name" placeholder="My API" required
         /></ElFormItem>
       </div>
 
       <div class="mb-4">
-        <ElFormItem label="表示名（権限がない時に見える名前）"
+        <ElFormItem :label="t('monitorForm.displayName')"
           ><ElInput v-model="form.displayName" placeholder="My Service Monitor"
         /></ElFormItem>
       </div>
 
       <div class="mb-4">
-        <ElFormItem label="URL" required
+        <ElFormItem :label="t('monitorForm.url')" required
           ><ElInput
             v-model="form.url"
             type="url"
@@ -37,7 +37,7 @@
 
       <!-- Method & Timeout -->
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <ElFormItem label="メソッド"
+        <ElFormItem :label="t('monitorForm.method')"
           ><ElSelect v-model="form.method" class="w-full"
             ><ElOption
               v-for="option in methodOptions"
@@ -46,7 +46,7 @@
               :value="option.value" /></ElSelect
         ></ElFormItem>
 
-        <ElFormItem label="タイムアウト (秒)" required
+        <ElFormItem :label="t('monitorForm.timeoutSeconds')" required
           ><ElInput
             v-model="form.timeout"
             type="number"
@@ -59,7 +59,7 @@
 
       <!-- Expected Status -->
       <div class="mb-4">
-        <ElFormItem label="期待ステータス"
+        <ElFormItem :label="t('monitorForm.expectedStatus')"
           ><ElInput
             v-model="form.expectedStatus"
             type="number"
@@ -87,8 +87,8 @@
 
         <div class="mb-4">
           <ElCollapse
-            ><ElCollapseItem title="リクエストボディ"
-              ><ElFormItem label="ボディ"
+            ><ElCollapseItem :title="t('monitorForm.requestBody')"
+              ><ElFormItem :label="t('monitorForm.body')"
                 ><ElInput
                   v-model="form.body"
                   :rows="4"
@@ -101,8 +101,8 @@
       <!-- Headers (collapsible) -->
       <div class="mb-4">
         <ElCollapse
-          ><ElCollapseItem title="カスタムヘッダー"
-            ><ElFormItem label="ヘッダー"
+          ><ElCollapseItem :title="t('monitorForm.customHeaders')"
+            ><ElFormItem :label="t('monitorForm.headers')"
               ><ElInput
                 v-model="form.headers"
                 :rows="3"
@@ -123,8 +123,10 @@
 
       <!-- Actions -->
       <div class="flex justify-end gap-2 mt-6">
-        <ElButton text type="primary" @click="$emit('close')">キャンセル</ElButton>
-        <ElButton native-type="submit" type="primary" :loading="loading">作成</ElButton>
+        <ElButton text type="primary" @click="$emit('close')">{{ t("common.cancel") }}</ElButton>
+        <ElButton native-type="submit" type="primary" :loading="loading">{{
+          t("common.create")
+        }}</ElButton>
       </div>
     </ElForm>
   </ElDialog>
@@ -133,6 +135,7 @@
 <script lang="ts" setup>
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: []; created: [] }>();
+const { t } = useI18n();
 
 const form = ref({
   name: "",
@@ -163,11 +166,11 @@ const methodOptions = [
   { value: "POST", label: "POST" },
 ];
 
-const contentTypeOptions = [
-  { value: "", label: "なし" },
+const contentTypeOptions = computed(() => [
+  { value: "", label: t("settings.contentTypeNone") },
   ...CONTENT_TYPE_OPTIONS.map((ct) => ({ value: ct, label: ct })),
-  { value: "custom", label: "カスタム / ヘッダーJSONを保持" },
-];
+  { value: "custom", label: t("settings.contentTypeCustom") },
+]);
 
 async function handleSubmit() {
   error.value = "";
@@ -198,7 +201,7 @@ async function handleSubmit() {
     emit("created");
     emit("close");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "作成に失敗しました";
+    error.value = e instanceof Error ? e.message : t("import.createFailed");
   } finally {
     loading.value = false;
   }

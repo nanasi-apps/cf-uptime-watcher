@@ -8,6 +8,7 @@
 const props = defineProps<{
   status: "up" | "down" | "pending";
 }>();
+const { t } = useI18n();
 
 const tagType = computed(() => {
   const map: Record<string, "success" | "danger" | "info"> = {
@@ -20,9 +21,9 @@ const tagType = computed(() => {
 
 const label = computed(() => {
   const map: Record<string, string> = {
-    up: "稼働中",
-    down: "停止",
-    pending: "待機中",
+    up: t("status.up"),
+    down: t("status.down"),
+    pending: t("status.pending"),
   };
   return map[props.status];
 });

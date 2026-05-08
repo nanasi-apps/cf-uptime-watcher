@@ -1,9 +1,9 @@
 <template>
   <ElCard :body-style="{ padding: '1rem' }" class="mb-6" shadow="never">
-    <h3 class="font-bold text-lg m-0 mb-3">通知チャンネル</h3>
+    <h3 class="font-bold text-lg m-0 mb-3">{{ t("channels.title") }}</h3>
 
     <div v-if="allChannels.length === 0" class="text-sm text-base-content/50">
-      チャンネルが未設定です。ダッシュボードから追加してください。
+      {{ t("channels.empty") }}
     </div>
 
     <div class="space-y-2">
@@ -34,6 +34,7 @@ interface Channel {
 }
 
 const props = defineProps<{ monitorId: number; channelIds: number[] }>();
+const { t } = useI18n();
 
 const allChannels = ref<Channel[]>([]);
 const selectedIds = ref(new Set<number>());

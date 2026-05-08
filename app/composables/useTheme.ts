@@ -4,6 +4,10 @@ type Theme = "light" | "dark";
 
 const theme = ref<Theme>("light");
 
+function isTheme(value: string | null): value is Theme {
+  return value === "light" || value === "dark";
+}
+
 function applyTheme(t: Theme) {
   if (typeof document !== "undefined") {
     document.documentElement.setAttribute("data-theme", t);
@@ -13,8 +17,8 @@ function applyTheme(t: Theme) {
 
 export function useTheme() {
   function init() {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (stored) {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (isTheme(stored)) {
       theme.value = stored;
     } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       theme.value = "dark";

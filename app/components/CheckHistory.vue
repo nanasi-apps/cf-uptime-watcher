@@ -1,7 +1,7 @@
 <template>
   <ElCard :body-style="{ padding: 0 }" class="bg-base-100" shadow="never">
     <div class="check-history-section">
-      <h3 class="font-bold text-lg mb-4 mt-0">チェック履歴</h3>
+      <h3 class="font-bold text-lg mb-4 mt-0">{{ t("monitor.history") }}</h3>
 
       <!-- Uptime bars -->
       <div class="history-bars-large">
@@ -17,8 +17,10 @@
         </template>
       </div>
       <div v-if="history.length > 0" class="bar-legend">
-        <span class="text-xs text-base-content/40">{{ barData.length }}回前</span>
-        <span class="text-xs text-base-content/40">最新</span>
+        <span class="text-xs text-base-content/40">{{
+          t("monitor.previousCount", { count: barData.length })
+        }}</span>
+        <span class="text-xs text-base-content/40">{{ t("monitor.latest") }}</span>
       </div>
 
       <!-- Events list -->
@@ -29,7 +31,7 @@
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium text-sm">
-                  {{ check.isUp ? "稼働中" : "停止" }}
+                  {{ check.isUp ? t("status.up") : t("status.down") }}
                 </span>
                 <span v-if="check.statusCode" class="text-xs font-mono text-base-content/50">
                   HTTP {{ check.statusCode }}
@@ -61,11 +63,11 @@
             type="primary"
             @click.stop="toggleExpanded(check.id)"
           >
-            {{ isExpanded(check.id) ? "閉じる" : "詳細" }}
+            {{ isExpanded(check.id) ? t("common.close") : t("common.details") }}
           </ElButton>
         </div>
         <div v-if="history.length === 0" class="text-center text-base-content/50 py-8">
-          チェック履歴がありません
+          {{ t("monitor.noHistory") }}
         </div>
       </div>
     </div>
@@ -76,6 +78,7 @@
 import type { CheckResult } from "./types";
 
 const props = defineProps<{ history: CheckResult[] }>();
+const { t } = useI18n();
 
 const expandedIds = ref<number[]>([]);
 const barData = computed(() => [...props.history].reverse().slice(-90));
@@ -87,9 +90,11 @@ function formatDate(iso: string) {
 
 function tooltip(check: CheckResult) {
   const time = formatDate(check.checkedAt);
-  const status = check.isUp ? "稼働中" : "停止";
-  const rt = check.responseTime ? ` (${check.responseTime}ms)` : "";
-  return `${time} - ${status}${rt}`;
+  const status = check.isUp ? t("status.up") : t("status.down");
+  const rt = check.responseTime
+    ? t("monitor.responseTimeSuffix", { time: check.responseTime })
+    : "";
+  return t("monitor.tooltip", { time, status, responseTime: rt });
 }
 
 function isExpanded(id: number) {

@@ -15,26 +15,32 @@
         </div>
         <div v-if="isAdmin" class="flex gap-2 flex-wrap">
           <ElButton plain size="small" type="primary" :loading="checking" @click="$emit('check')">
-            今すぐチェック
+            {{ t("monitor.checkNow") }}
           </ElButton>
-          <ElButton plain size="small" type="primary" @click="$emit('duplicate')">複製</ElButton>
-          <ElButton plain size="small" type="primary" @click="$emit('edit')">編集</ElButton>
-          <ElButton size="small" type="danger" @click="$emit('delete')">削除</ElButton>
+          <ElButton plain size="small" type="primary" @click="$emit('duplicate')">
+            {{ t("monitor.duplicate") }}
+          </ElButton>
+          <ElButton plain size="small" type="primary" @click="$emit('edit')">
+            {{ t("common.edit") }}
+          </ElButton>
+          <ElButton size="small" type="danger" @click="$emit('delete')">
+            {{ t("common.delete") }}
+          </ElButton>
         </div>
       </div>
 
       <div class="stats-grid mt-5">
         <ElCard class="bg-base-200/50" shadow="never"
-          ><ElStatistic title="稼働率" :value="uptimeValue"
+          ><ElStatistic :title="t('monitor.uptime')" :value="uptimeValue"
         /></ElCard>
         <ElCard class="bg-base-200/50" shadow="never"
-          ><ElStatistic title="応答時間" :value="responseTimeValue"
+          ><ElStatistic :title="t('monitor.responseTime')" :value="responseTimeValue"
         /></ElCard>
         <ElCard class="bg-base-200/50" shadow="never"
-          ><ElStatistic title="タイムアウト" :value="`${monitor.timeout}s`"
+          ><ElStatistic :title="t('monitor.timeout')" :value="`${monitor.timeout}s`"
         /></ElCard>
         <ElCard class="bg-base-200/50" shadow="never"
-          ><ElStatistic title="期待ステータス" :value="monitor.expectedStatus"
+          ><ElStatistic :title="t('monitor.expectedStatus')" :value="monitor.expectedStatus"
         /></ElCard>
       </div>
     </div>
@@ -50,6 +56,7 @@ const props = defineProps<{
   isAdmin: boolean;
 }>();
 defineEmits<{ check: []; delete: []; edit: []; duplicate: [] }>();
+const { t } = useI18n();
 
 const { status, uptimeColorClass, statusText } = useMonitorStatus(
   () => props.monitor.lastCheck,

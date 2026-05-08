@@ -1,9 +1,7 @@
 <template>
   <footer class="py-6 border-t border-base-300">
     <div class="container mx-auto max-w-5xl px-4 flex items-center justify-between">
-      <span class="text-xs text-base-content/30"
-        >CF Healthcheck &mdash; Powered by Cloudflare Workers</span
-      >
+      <span class="text-xs text-base-content/30">{{ t("app.footer") }}</span>
       <nav class="flex items-center gap-1">
         <ElLink
           href="https://github.com/mattyatea/cf-uptime-watcher"
@@ -21,21 +19,33 @@
         <ElButton link size="small" :title="themeLabel" type="primary" @click="toggleTheme">
           {{ theme === "dark" ? "☀" : "☾" }}
         </ElButton>
+        <ElSelect
+          :model-value="locale"
+          :aria-label="t('locale.label')"
+          size="small"
+          class="locale-select"
+          @update:model-value="setLocale"
+        >
+          <ElOption :label="t('locale.ja')" value="ja" />
+          <ElOption :label="t('locale.en')" value="en" />
+        </ElSelect>
         <template v-if="isLoggedIn">
           <NuxtLink
             to="/settings"
             class="nav-link text-base-content/40 hover:text-base-content hover:bg-base-200"
           >
-            設定
+            {{ t("common.settings") }}
           </NuxtLink>
-          <ElButton link size="small" type="primary" @click="logout"> ログアウト </ElButton>
+          <ElButton link size="small" type="primary" @click="logout">
+            {{ t("common.logout") }}
+          </ElButton>
         </template>
         <NuxtLink
           v-else
           to="/login"
           class="nav-link text-base-content/40 hover:text-base-content hover:bg-base-200"
         >
-          ログイン
+          {{ t("common.login") }}
         </NuxtLink>
       </nav>
     </div>
@@ -44,11 +54,12 @@
 
 <script lang="ts" setup>
 const token = ref<string | null>(null);
+const { locale, setLocale, t } = useI18n();
 
 const isLoggedIn = computed(() => !!token.value);
 
 const { theme, init: initTheme, toggle: toggleTheme } = useTheme();
-const themeLabel = computed(() => (theme.value === "dark" ? "ライトモード" : "ダークモード"));
+const themeLabel = computed(() => (theme.value === "dark" ? t("theme.light") : t("theme.dark")));
 
 onMounted(() => {
   token.value = localStorage.getItem("auth_token");
@@ -61,3 +72,9 @@ function logout() {
   navigateTo("/login");
 }
 </script>
+
+<style scoped>
+.locale-select {
+  width: 7.5rem;
+}
+</style>

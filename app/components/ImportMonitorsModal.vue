@@ -1,14 +1,14 @@
 <template>
   <ElDialog
     :model-value="open"
-    title="モニターインポート"
+    :title="t('import.title')"
     width="42rem"
     align-center
     @close="handleClose"
   >
     <div v-if="!result" class="space-y-4">
       <div>
-        <p class="mb-2 text-sm font-medium">JSONファイル</p>
+        <p class="mb-2 text-sm font-medium">{{ t("import.jsonFile") }}</p>
         <ElUpload
           ref="uploadRef"
           accept=".json,application/json"
@@ -16,19 +16,21 @@
           :limit="1"
           @change="handleFileChange"
         >
-          <ElButton>ファイルを選択</ElButton>
+          <ElButton>{{ t("import.selectFile") }}</ElButton>
         </ElUpload>
       </div>
 
       <div class="form-control">
         <label class="inline-flex items-center gap-3"
-          ><span class="text-sm">重複をスキップ（URLで判定）</span
+          ><span class="text-sm">{{ t("import.skipDuplicates") }}</span
           ><ElSwitch v-model="skipDuplicates"
         /></label>
       </div>
 
       <div v-if="preview.length > 0" class="bg-base-200 rounded-lg p-4">
-        <h4 class="font-medium text-sm mb-2">プレビュー ({{ preview.length }}件のモニター)</h4>
+        <h4 class="font-medium text-sm mb-2">
+          {{ t("import.preview", { count: preview.length }) }}
+        </h4>
         <div class="max-h-48 overflow-y-auto space-y-1">
           <div
             v-for="(item, i) in preview.slice(0, 10)"
@@ -40,7 +42,7 @@
             <span class="text-base-content/50 truncate flex-1">{{ item.url }}</span>
           </div>
           <div v-if="preview.length > 10" class="text-xs text-base-content/50 text-center py-2">
-            ... 他 {{ preview.length - 10 }}件
+            {{ t("import.more", { count: preview.length - 10 }) }}
           </div>
         </div>
       </div>
@@ -55,14 +57,18 @@
       />
 
       <div class="flex justify-end gap-2 mt-6">
-        <ElButton text type="primary" @click="handleClose">キャンセル</ElButton>
+        <ElButton text type="primary" @click="handleClose">{{ t("common.cancel") }}</ElButton>
         <ElButton
           type="primary"
           :disabled="!preview.length"
           :loading="loading"
           @click="handleImport"
         >
-          インポート{{ preview.length > 0 ? ` (${preview.length})` : "" }}
+          {{
+            t("import.importButton", {
+              count: preview.length > 0 ? t("import.importCount", { count: preview.length }) : "",
+            })
+          }}
         </ElButton>
       </div>
     </div>
@@ -70,13 +76,13 @@
     <div v-else class="space-y-4">
       <div class="flex gap-4">
         <ElCard class="flex-1" shadow="never">
-          <ElStatistic title="インポート済" :value="result.imported" />
+          <ElStatistic :title="t('import.imported')" :value="result.imported" />
         </ElCard>
         <ElCard class="flex-1" shadow="never">
-          <ElStatistic title="スキップ" :value="result.skipped" />
+          <ElStatistic :title="t('import.skipped')" :value="result.skipped" />
         </ElCard>
         <ElCard class="flex-1" shadow="never">
-          <ElStatistic title="エラー" :value="result.errors" />
+          <ElStatistic :title="t('import.errors')" :value="result.errors" />
         </ElCard>
       </div>
 
@@ -84,7 +90,7 @@
         v-if="result.details.some((d) => d.status !== 'imported')"
         class="bg-base-200 rounded-lg p-4"
       >
-        <h4 class="font-medium text-sm mb-2">詳細</h4>
+        <h4 class="font-medium text-sm mb-2">{{ t("import.details") }}</h4>
         <div class="max-h-64 overflow-y-auto space-y-1">
           <div
             v-for="(detail, i) in result.details.filter((d) => d.status !== 'imported')"
@@ -97,7 +103,7 @@
               round
               size="small"
             >
-              {{ detail.status === "skipped" ? "スキップ" : "エラー" }}
+              {{ detail.status === "skipped" ? t("import.skipped") : t("import.errors") }}
             </ElTag>
             <span class="truncate">{{ detail.name }}</span>
             <span v-if="detail.message" class="text-base-content/50 truncate flex-1">
@@ -108,7 +114,7 @@
       </div>
 
       <div class="flex justify-end gap-2 mt-6">
-        <ElButton type="primary" @click="handleClose">完了</ElButton>
+        <ElButton type="primary" @click="handleClose">{{ t("common.done") }}</ElButton>
       </div>
     </div>
   </ElDialog>
@@ -153,6 +159,7 @@ const skipDuplicates = ref(true);
 const loading = ref(false);
 const error = ref("");
 const result = ref<ImportResult | null>(null);
+const { t } = useI18n();
 
 watch(
   () => props.open,
@@ -186,19 +193,19 @@ function handleFileChange(uploadFile: UploadFile) {
       const parsed = JSON.parse(content);
 
       if (!Array.isArray(parsed)) {
-        throw new Error("JSONはモニターの配列である必要があります");
+        throw new Error(t("import.invalidFormat"));
       }
 
       preview.value = parsed.map((item: unknown) => {
         const m = item as Record<string, unknown>;
         if (!m.name || typeof m.name !== "string") {
-          throw new Error("各モニターには 'name' 文字列が必要です");
+          throw new Error(t("import.nameRequired"));
         }
         if (!m.url || typeof m.url !== "string") {
-          throw new Error("各モニターには 'url' 文字列が必要です");
+          throw new Error(t("import.urlRequired"));
         }
         if (!m.method || (m.method !== "GET" && m.method !== "POST")) {
-          throw new Error("各モニターには 'method' (GET または POST) が必要です");
+          throw new Error(t("import.methodRequired"));
         }
         return {
           name: m.name,
@@ -213,7 +220,7 @@ function handleFileChange(uploadFile: UploadFile) {
 
       error.value = "";
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "無効なJSONファイルです";
+      error.value = e instanceof Error ? e.message : t("import.invalidJson");
       preview.value = [];
     }
   };
@@ -234,7 +241,7 @@ async function handleImport() {
     result.value = res;
     emit("imported");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "インポートに失敗しました";
+    error.value = e instanceof Error ? e.message : t("import.importFailed");
   } finally {
     loading.value = false;
   }

@@ -8,12 +8,12 @@
           >
             HC
           </span>
-          <h2 class="text-xl font-bold m-0">管理者ログイン</h2>
-          <p class="text-sm text-base-content/50 m-0">パスワードを入力してください</p>
+          <h2 class="text-xl font-bold m-0">{{ t("login.title") }}</h2>
+          <p class="text-sm text-base-content/50 m-0">{{ t("login.description") }}</p>
         </div>
 
         <form @submit.prevent="handleLogin">
-          <ElFormItem class="mt-4" :error="error" label="パスワード" required>
+          <ElFormItem class="mt-4" :error="error" :label="t('login.password')" required>
             <ElInput id="password" v-model="password" type="password" required />
           </ElFormItem>
 
@@ -21,7 +21,7 @@
 
           <div class="mt-6">
             <ElButton native-type="submit" class="w-full" type="primary" :loading="loading">
-              ログイン
+              {{ t("common.login") }}
             </ElButton>
           </div>
         </form>
@@ -34,6 +34,7 @@
 const password = ref("");
 const error = ref("");
 const loading = ref(false);
+const { t } = useI18n();
 
 async function handleLogin() {
   error.value = "";
@@ -44,7 +45,7 @@ async function handleLogin() {
       localStorage.setItem("auth_token", password.value);
       navigateTo("/");
     } else {
-      error.value = "パスワードが正しくありません";
+      error.value = t("login.invalidPassword");
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);

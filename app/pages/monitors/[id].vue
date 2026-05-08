@@ -2,8 +2,10 @@
   <div>
     <div class="text-sm breadcrumbs mb-4">
       <ul>
-        <li><NuxtLink to="/">モニター</NuxtLink></li>
-        <li class="text-base-content/50">{{ monitor?.name ?? "読み込み中..." }}</li>
+        <li>
+          <NuxtLink to="/">{{ t("monitor.title") }}</NuxtLink>
+        </li>
+        <li class="text-base-content/50">{{ monitor?.name ?? t("monitor.loading") }}</li>
       </ul>
     </div>
 
@@ -55,6 +57,7 @@ import type { MonitorWithStatus, CheckResult } from "~/components/types";
 
 const route = useRoute();
 const monitorId = Number(route.params.id);
+const { t } = useI18n();
 
 const monitor = ref<MonitorWithStatus | null>(null);
 const history = ref<CheckResult[]>([]);
@@ -85,11 +88,15 @@ async function checkNow() {
 
 async function confirmDelete() {
   try {
-    await ElMessageBox.confirm(`「${monitor.value?.name}」を削除しますか？`, "削除確認", {
-      confirmButtonText: "削除",
-      cancelButtonText: "キャンセル",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      t("monitor.deleteConfirmMessage", { name: monitor.value?.name ?? "" }),
+      t("monitor.deleteConfirmTitle"),
+      {
+        confirmButtonText: t("common.delete"),
+        cancelButtonText: t("common.cancel"),
+        type: "warning",
+      },
+    );
   } catch (e) {
     if (e !== "cancel" && e !== "close") {
       ElMessage.error(e instanceof Error ? e.message : String(e));
@@ -105,7 +112,7 @@ async function duplicateMonitor() {
   const m = monitor.value;
   try {
     const created = await client.monitor.create({
-      name: `${m.name} (コピー)`,
+      name: `${m.name} (${t("monitor.copySuffix")})`,
       url: m.url,
       method: m.method as "GET" | "POST",
       headers: m.headers,
@@ -115,7 +122,11 @@ async function duplicateMonitor() {
     });
     navigateTo(`/monitors/${created.id}`);
   } catch (e) {
-    ElMessage.error(`複製に失敗しました: ${e instanceof Error ? e.message : "不明なエラー"}`);
+    ElMessage.error(
+      t("monitor.duplicateFailed", {
+        message: e instanceof Error ? e.message : t("common.unknownError"),
+      }),
+    );
   }
 }
 

@@ -3,12 +3,12 @@
     <header class="settings-header mb-6">
       <div class="settings-header-row">
         <div>
-          <h1 class="text-2xl font-bold m-0">設定</h1>
+          <h1 class="text-2xl font-bold m-0">{{ t("settings.title") }}</h1>
           <p class="text-sm text-base-content/50 mt-2 mb-0">
-            モニター、通知チャンネル、Webhook をまとめて管理します。
+            {{ t("settings.description") }}
           </p>
         </div>
-        <NuxtLink to="/" class="home-link">ホームへ戻る</NuxtLink>
+        <NuxtLink to="/" class="home-link">{{ t("settings.home") }}</NuxtLink>
       </div>
     </header>
 
@@ -20,13 +20,17 @@
       <!-- Left: Monitor list -->
       <div class="settings-sidebar bg-base-100">
         <div class="sidebar-header">
-          <span class="text-sm font-semibold">モニター一覧</span>
+          <span class="text-sm font-semibold">{{ t("settings.monitorList") }}</span>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-base-content/40">{{ monitors.length }}件</span>
+            <span class="text-xs text-base-content/40">{{
+              t("settings.count", { count: monitors.length })
+            }}</span>
             <ElButton plain size="small" type="primary" @click="showImportModal = true">
-              インポート
+              {{ t("common.import") }}
             </ElButton>
-            <ElButton size="small" type="primary" @click="startCreateMonitor"> + 追加 </ElButton>
+            <ElButton size="small" type="primary" @click="startCreateMonitor">
+              {{ t("common.add") }}
+            </ElButton>
           </div>
         </div>
         <div class="sidebar-list">
@@ -45,7 +49,7 @@
             <span class="truncate text-sm">{{ m.name }}</span>
           </ElButton>
           <div v-if="monitors.length === 0" class="text-center text-sm text-base-content/40 py-8">
-            モニターがありません
+            {{ t("settings.emptyMonitors") }}
           </div>
         </div>
       </div>
@@ -53,19 +57,23 @@
       <!-- Right: Monitor settings form -->
       <div class="settings-content bg-base-100">
         <div v-if="monitorPaneMode === 'idle'" class="text-center text-base-content/40 py-16">
-          左のリストからモニターを選択、または新規作成してください
+          {{ t("settings.selectMonitorHint") }}
         </div>
         <template v-else>
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 class="text-lg font-bold m-0">
-                {{ monitorPaneMode === "create" ? "モニター追加" : selectedMonitor?.name }}
+                {{
+                  monitorPaneMode === "create"
+                    ? t("monitorForm.createTitle")
+                    : selectedMonitor?.name
+                }}
               </h2>
               <p class="text-sm text-base-content/50 mt-1 mb-0">
                 {{
                   monitorPaneMode === "create"
-                    ? "新しいモニターを作成します"
-                    : "モニター設定を編集します"
+                    ? t("settings.createMonitorDescription")
+                    : t("settings.editMonitorDescription")
                 }}
               </p>
             </div>
@@ -76,10 +84,10 @@
                 type="primary"
                 @click="duplicateMonitor(selectedMonitor)"
               >
-                複製
+                {{ t("monitor.duplicate") }}
               </ElButton>
               <ElButton size="small" type="danger" @click="deleteMonitor(selectedMonitor)">
-                削除
+                {{ t("common.delete") }}
               </ElButton>
             </div>
           </div>
@@ -91,18 +99,18 @@
             @submit.prevent="saveMonitor"
           >
             <div class="space-y-4">
-              <ElFormItem label="名前（内部用）" required
+              <ElFormItem :label="t('monitorForm.name')" required
                 ><ElInput v-model="editForm.name" required
               /></ElFormItem>
-              <ElFormItem label="表示名（権限がない時に見える名前）"
+              <ElFormItem :label="t('monitorForm.displayName')"
                 ><ElInput v-model="editForm.displayName"
               /></ElFormItem>
-              <ElFormItem label="URL" required
+              <ElFormItem :label="t('monitorForm.url')" required
                 ><ElInput v-model="editForm.url" type="url" required
               /></ElFormItem>
 
               <div class="grid grid-cols-2 gap-4">
-                <ElFormItem label="メソッド"
+                <ElFormItem :label="t('monitorForm.method')"
                   ><ElSelect v-model="editForm.method" class="w-full"
                     ><ElOption
                       v-for="option in methodOptions"
@@ -110,12 +118,12 @@
                       :label="option.label"
                       :value="option.value" /></ElSelect
                 ></ElFormItem>
-                <ElFormItem label="タイムアウト (秒)" required
+                <ElFormItem :label="t('monitorForm.timeoutSeconds')" required
                   ><ElInput v-model="editForm.timeout" type="number" required min="1" max="120"
                 /></ElFormItem>
               </div>
 
-              <ElFormItem label="期待ステータス"
+              <ElFormItem :label="t('monitorForm.expectedStatus')"
                 ><ElInput v-model="editForm.expectedStatus" type="number" min="100" max="599"
               /></ElFormItem>
 
@@ -135,8 +143,8 @@
                 </div>
 
                 <ElCollapse
-                  ><ElCollapseItem title="リクエストボディ"
-                    ><ElFormItem label="ボディ"
+                  ><ElCollapseItem :title="t('monitorForm.requestBody')"
+                    ><ElFormItem :label="t('monitorForm.body')"
                       ><ElInput
                         v-model="editForm.body"
                         :rows="4"
@@ -146,8 +154,8 @@
               </div>
 
               <ElCollapse
-                ><ElCollapseItem title="カスタムヘッダー"
-                  ><ElFormItem label="ヘッダー"
+                ><ElCollapseItem :title="t('monitorForm.customHeaders')"
+                  ><ElFormItem :label="t('monitorForm.headers')"
                     ><ElInput
                       v-model="editForm.headers"
                       :rows="3"
@@ -156,14 +164,15 @@
               ></ElCollapse>
 
               <label v-if="monitorPaneMode === 'edit'" class="inline-flex items-center gap-3"
-                ><span class="text-sm">有効</span><ElSwitch v-model="editForm.active"
+                ><span class="text-sm">{{ t("monitorForm.active") }}</span
+                ><ElSwitch v-model="editForm.active"
               /></label>
 
               <!-- Channel selector inline -->
               <div v-if="monitorPaneMode === 'edit'" class="settings-section">
-                <h3 class="text-sm font-semibold mb-2">通知チャンネル</h3>
+                <h3 class="text-sm font-semibold mb-2">{{ t("channels.title") }}</h3>
                 <div v-if="channels.length === 0" class="text-sm text-base-content/40">
-                  通知チャンネルが未設定です
+                  {{ t("settings.noChannels") }}
                 </div>
                 <div class="space-y-1">
                   <label v-for="ch in channels" :key="ch.id" class="channel-row">
@@ -195,9 +204,11 @@
             />
 
             <div class="flex justify-end gap-2 mt-6">
-              <ElButton text type="primary" @click="resetMonitorPane">キャンセル</ElButton>
+              <ElButton text type="primary" @click="resetMonitorPane">{{
+                t("common.cancel")
+              }}</ElButton>
               <ElButton native-type="submit" type="primary" :loading="saving">
-                {{ monitorPaneMode === "create" ? "作成" : "保存" }}
+                {{ monitorPaneMode === "create" ? t("common.create") : t("common.save") }}
               </ElButton>
             </div>
           </ElForm>
@@ -213,16 +224,16 @@
     <!-- Bulk webhook assignment tab -->
     <div v-if="activeTab === 'bulk'" class="bulk-section">
       <ElCard :body-style="{ padding: 0 }" class="settings-card bg-base-100" shadow="never">
-        <h2 class="text-lg font-bold mb-4">一括Webhook割当</h2>
+        <h2 class="text-lg font-bold mb-4">{{ t("settings.bulkTitle") }}</h2>
         <p class="text-sm text-base-content/50 mb-4">
-          複数のモニターに対して通知チャンネルを一括で設定できます。
+          {{ t("settings.bulkDescription") }}
         </p>
 
         <!-- Channel selection -->
         <div class="mb-6">
-          <h3 class="text-sm font-semibold mb-2">割り当てるチャンネル</h3>
+          <h3 class="text-sm font-semibold mb-2">{{ t("settings.bulkChannels") }}</h3>
           <div v-if="channels.length === 0" class="text-sm text-base-content/40">
-            通知チャンネルがありません。先に「通知チャンネル」タブで追加してください。
+            {{ t("settings.bulkNoChannels") }}
           </div>
           <div class="space-y-1">
             <label v-for="ch in channels" :key="ch.id" class="channel-row">
@@ -246,13 +257,13 @@
         <!-- Monitor selection -->
         <div class="mb-6">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold">対象モニター</h3>
+            <h3 class="text-sm font-semibold">{{ t("settings.bulkTargets") }}</h3>
             <div class="flex gap-2">
               <ElButton link size="small" type="primary" @click="selectAllMonitors">
-                全選択
+                {{ t("settings.selectAll") }}
               </ElButton>
               <ElButton link size="small" type="primary" @click="deselectAllMonitors">
-                全解除
+                {{ t("settings.deselectAll") }}
               </ElButton>
             </div>
           </div>
@@ -269,7 +280,7 @@
 
         <!-- Bulk mode -->
         <div class="mb-6">
-          <ElFormItem label="動作"
+          <ElFormItem :label="t('settings.bulkMode')"
             ><ElSelect v-model="bulkMode" class="w-full"
               ><ElOption
                 v-for="option in bulkModeOptions"
@@ -294,7 +305,7 @@
           :disabled="bulkChannelIds.size === 0 || bulkMonitorIds.size === 0"
           @click="applyBulkChannels"
         >
-          {{ bulkMonitorIds.size }}件のモニターに適用
+          {{ t("settings.bulkApply", { count: bulkMonitorIds.size }) }}
         </ElButton>
       </ElCard>
     </div>
@@ -326,6 +337,7 @@ interface Channel {
 }
 
 const activeTab = ref<"monitors" | "channels" | "bulk">("monitors");
+const { t } = useI18n();
 const monitors = ref<MonitorWithStatus[]>([]);
 const channels = ref<Channel[]>([]);
 const monitorPaneMode = ref<MonitorPaneMode>("idle");
@@ -361,22 +373,22 @@ const headersRef = computed({
 const { parseHeaders, selectedContentType, handleContentTypeChange, CONTENT_TYPE_OPTIONS } =
   useHeadersEditor(headersRef);
 
-const contentTypeOptions = [
-  { value: "", label: "なし" },
+const contentTypeOptions = computed(() => [
+  { value: "", label: t("settings.contentTypeNone") },
   ...CONTENT_TYPE_OPTIONS.map((contentType) => ({ value: contentType, label: contentType })),
-  { value: "custom", label: "カスタム / ヘッダーJSONを保持" },
-];
+  { value: "custom", label: t("settings.contentTypeCustom") },
+]);
 
-const bulkModeOptions = [
-  { value: "replace", label: "置換（既存を上書き）" },
-  { value: "add", label: "追加（既存に追加）" },
-];
+const bulkModeOptions = computed(() => [
+  { value: "replace", label: t("settings.bulkReplace") },
+  { value: "add", label: t("settings.bulkAdd") },
+]);
 
-const tabOptions = [
-  { value: "monitors", label: "モニター設定" },
-  { value: "channels", label: "通知チャンネル" },
-  { value: "bulk", label: "一括Webhook設定" },
-];
+const tabOptions = computed(() => [
+  { value: "monitors", label: t("settings.monitorTab") },
+  { value: "channels", label: t("settings.channelsTab") },
+  { value: "bulk", label: t("settings.bulkTab") },
+]);
 
 const selectedMonitor = computed(
   () => monitors.value.find((m) => m.id === selectedMonitorId.value) ?? null,
@@ -484,7 +496,7 @@ async function saveMonitor() {
       await loadMonitors();
     }
   } catch (e) {
-    saveError.value = e instanceof Error ? e.message : "保存に失敗しました";
+    saveError.value = e instanceof Error ? e.message : t("settings.saveFailed");
   } finally {
     saving.value = false;
   }
@@ -495,8 +507,8 @@ async function duplicateMonitor(m: MonitorWithStatus) {
     parseHeaders(m.headers ?? "");
 
     const created = await client.monitor.create({
-      name: `${m.name} (コピー)`,
-      displayName: m.displayName ? `${m.displayName} (コピー)` : null,
+      name: `${m.name} (${t("monitor.copySuffix")})`,
+      displayName: m.displayName ? `${m.displayName} (${t("monitor.copySuffix")})` : null,
       url: m.url,
       method: m.method as "GET" | "POST",
       headers: m.headers,
@@ -507,17 +519,25 @@ async function duplicateMonitor(m: MonitorWithStatus) {
     await loadMonitors();
     selectMonitor(created.id);
   } catch (e) {
-    ElMessage.error(`複製に失敗しました: ${e instanceof Error ? e.message : "不明なエラー"}`);
+    ElMessage.error(
+      t("monitor.duplicateFailed", {
+        message: e instanceof Error ? e.message : t("common.unknownError"),
+      }),
+    );
   }
 }
 
 async function deleteMonitor(m: MonitorWithStatus) {
   try {
-    await ElMessageBox.confirm(`「${m.name}」を削除しますか？`, "削除確認", {
-      confirmButtonText: "削除",
-      cancelButtonText: "キャンセル",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      t("monitor.deleteConfirmMessage", { name: m.name }),
+      t("monitor.deleteConfirmTitle"),
+      {
+        confirmButtonText: t("common.delete"),
+        cancelButtonText: t("common.cancel"),
+        type: "warning",
+      },
+    );
   } catch (e) {
     if (e !== "cancel" && e !== "close") {
       ElMessage.error(e instanceof Error ? e.message : String(e));
@@ -572,11 +592,11 @@ async function applyBulkChannels() {
       await client.monitor.setChannels({ id: monitorId, channelIds: finalChannelIds });
     }
 
-    bulkResult.value = `${targetIds.length}件のモニターに通知チャンネルを設定しました`;
+    bulkResult.value = t("settings.bulkSuccess", { count: targetIds.length });
     bulkResultVariant.value = "success";
     await loadMonitors();
   } catch (e) {
-    bulkResult.value = e instanceof Error ? e.message : "一括設定に失敗しました";
+    bulkResult.value = e instanceof Error ? e.message : t("settings.bulkFailed");
     bulkResultVariant.value = "error";
   } finally {
     bulkSaving.value = false;

@@ -2,10 +2,14 @@
   <div class="notification-settings-layout">
     <div class="notification-sidebar bg-base-100">
       <div class="sidebar-header">
-        <span class="text-sm font-semibold">Webhook一覧</span>
+        <span class="text-sm font-semibold">{{ t("notifications.listTitle") }}</span>
         <div class="flex items-center gap-2">
-          <span class="text-xs text-base-content/40">{{ channels.length }}件</span>
-          <ElButton size="small" type="primary" @click="startCreate">+ Webhook追加</ElButton>
+          <span class="text-xs text-base-content/40">{{
+            t("settings.count", { count: channels.length })
+          }}</span>
+          <ElButton size="small" type="primary" @click="startCreate">{{
+            t("notifications.addWebhook")
+          }}</ElButton>
         </div>
       </div>
 
@@ -32,7 +36,11 @@
               <span class="truncate text-sm font-medium">{{ ch.name }}</span>
             </div>
             <div class="mt-1 truncate text-xs text-base-content/50">
-              {{ hasCustomSettings(ch) ? "カスタム設定" : "デフォルト設定" }}
+              {{
+                hasCustomSettings(ch)
+                  ? t("notifications.customSettings")
+                  : t("notifications.defaultSettings")
+              }}
             </div>
           </div>
         </ElButton>
@@ -41,27 +49,31 @@
           v-if="channels.length === 0"
           class="px-4 py-8 text-center text-sm text-base-content/40"
         >
-          通知チャンネルがありません
+          {{ t("notifications.empty") }}
         </div>
       </div>
     </div>
 
     <div class="notification-content bg-base-100">
       <div v-if="paneMode === 'idle'" class="py-16 text-center text-base-content/40">
-        左のリストからWebhookを選択、または新規作成してください
+        {{ t("notifications.idle") }}
       </div>
 
       <template v-else>
         <div class="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 class="m-0 text-lg font-bold">
-              {{ paneMode === "create" ? "Webhook追加" : form.name || "Webhook編集" }}
+              {{
+                paneMode === "create"
+                  ? t("notifications.createTitle")
+                  : form.name || t("notifications.editTitle")
+              }}
             </h2>
             <p class="mt-1 mb-0 text-sm text-base-content/50">
               {{
                 paneMode === "create"
-                  ? "新しい通知チャンネルを作成します"
-                  : "Webhookの通知内容とDiscord項目を編集します"
+                  ? t("notifications.createDescription")
+                  : t("notifications.editDescription")
               }}
             </p>
           </div>
@@ -73,9 +85,11 @@
               :loading="testingId === selectedChannel.id"
               @click="testSend(selectedChannel)"
             >
-              テスト
+              {{ t("common.test") }}
             </ElButton>
-            <ElButton type="danger" size="small" @click="remove(selectedChannel)">削除</ElButton>
+            <ElButton type="danger" size="small" @click="remove(selectedChannel)">{{
+              t("common.delete")
+            }}</ElButton>
           </div>
         </div>
 
@@ -86,11 +100,14 @@
           @submit.prevent="saveChannel"
         >
           <div class="space-y-4">
-            <ElFormItem label="名前" required
-              ><ElInput v-model="form.name" placeholder="本番アラート" required
+            <ElFormItem :label="t('notifications.name')" required
+              ><ElInput
+                v-model="form.name"
+                :placeholder="t('notifications.namePlaceholder')"
+                required
             /></ElFormItem>
 
-            <ElFormItem v-if="paneMode === 'create'" label="タイプ"
+            <ElFormItem v-if="paneMode === 'create'" :label="t('notifications.type')"
               ><ElSelect v-model="form.type" class="w-full"
                 ><ElOption
                   v-for="option in typeOptions"
@@ -99,7 +116,7 @@
                   :value="option.value" /></ElSelect
             ></ElFormItem>
             <div v-else class="flex items-center gap-2 rounded-lg bg-base-200 p-3">
-              <span class="text-sm text-base-content/50">タイプ</span>
+              <span class="text-sm text-base-content/50">{{ t("notifications.type") }}</span>
               <ElTag
                 :type="form.type === 'discord' ? 'primary' : 'info'"
                 effect="light"
@@ -110,7 +127,7 @@
               </ElTag>
             </div>
 
-            <ElFormItem label="Webhook URL" required
+            <ElFormItem :label="t('notifications.webhookUrl')" required
               ><ElInput
                 v-model="form.webhookUrl"
                 placeholder="https://discord.com/api/webhooks/..."
@@ -118,15 +135,15 @@
             /></ElFormItem>
 
             <ElCollapse>
-              <ElCollapseItem title="メッセージテンプレート">
-                <ElFormItem label="ダウン時テンプレート"
+              <ElCollapseItem :title="t('notifications.messageTemplate')">
+                <ElFormItem :label="t('notifications.downTemplate')"
                   ><ElInput
                     v-model="form.downTemplate"
                     :rows="5"
                     :placeholder="defaultTemplate"
                     type="textarea"
                 /></ElFormItem>
-                <ElFormItem label="復旧時テンプレート"
+                <ElFormItem :label="t('notifications.upTemplate')"
                   ><ElInput
                     v-model="form.upTemplate"
                     :rows="5"
@@ -138,7 +155,7 @@
             </ElCollapse>
 
             <ElCollapse v-if="form.type === 'discord'">
-              <ElCollapseItem title="Discord Payload設定">
+              <ElCollapseItem :title="t('notifications.discordPayload')">
                 <div class="discord-payload-settings">
                   <div class="discord-field-group">
                     <ElFormItem label="Username"
@@ -149,18 +166,18 @@
                         v-model="form.discordAvatarUrl"
                         placeholder="https://example.com/avatar.png"
                     /></ElFormItem>
-                    <ElFormItem label="TTSで送信">
+                    <ElFormItem :label="t('notifications.tts')">
                       <div>
                         <ElSwitch v-model="form.discordTts" />
                         <p class="mt-1 mb-0 text-xs text-base-content/50">
-                          Discordの読み上げ通知として送信します。対応しているクライアントではメッセージが音声で読み上げられます。
+                          {{ t("notifications.ttsHelp") }}
                         </p>
                       </div>
                     </ElFormItem>
                   </div>
 
                   <div class="settings-subsection">
-                    <h3 class="text-sm font-semibold">Embed</h3>
+                    <h3 class="text-sm font-semibold">{{ t("notifications.embed") }}</h3>
                     <ElFormItem label="Embed Title"
                       ><ElInput v-model="form.discordEmbedTitle" placeholder="{{monitor.name}}"
                     /></ElFormItem>
@@ -171,13 +188,13 @@
                       ><ElInput v-model="form.discordEmbedColor" placeholder="#00ff00"
                     /></ElFormItem>
                     <label class="inline-flex items-center gap-3"
-                      ><span class="text-sm">Timestampを付ける</span
+                      ><span class="text-sm">{{ t("notifications.embedTimestamp") }}</span
                       ><ElSwitch v-model="form.discordEmbedTimestamp"
                     /></label>
                   </div>
 
                   <div class="settings-subsection">
-                    <h3 class="text-sm font-semibold">Embed Author / Image / Footer</h3>
+                    <h3 class="text-sm font-semibold">{{ t("notifications.embedMedia") }}</h3>
                     <ElFormItem label="Author Name"
                       ><ElInput v-model="form.discordEmbedAuthorName"
                     /></ElFormItem>
@@ -202,39 +219,39 @@
                   </div>
 
                   <div class="settings-subsection">
-                    <h3 class="text-sm font-semibold">Mentions / Flags</h3>
+                    <h3 class="text-sm font-semibold">{{ t("notifications.mentionsFlags") }}</h3>
                     <label class="inline-flex items-center gap-3"
-                      ><span class="text-sm">User mentionsを許可</span
+                      ><span class="text-sm">{{ t("notifications.allowUserMentions") }}</span
                       ><ElSwitch v-model="form.discordAllowUserMentions"
                     /></label>
                     <label class="inline-flex items-center gap-3"
-                      ><span class="text-sm">Role mentionsを許可</span
+                      ><span class="text-sm">{{ t("notifications.allowRoleMentions") }}</span
                       ><ElSwitch v-model="form.discordAllowRoleMentions"
                     /></label>
                     <label class="inline-flex items-center gap-3"
-                      ><span class="text-sm">@everyoneを許可</span
+                      ><span class="text-sm">{{ t("notifications.allowEveryoneMentions") }}</span
                       ><ElSwitch v-model="form.discordAllowEveryoneMentions"
                     /></label>
                     <label class="inline-flex items-center gap-3"
-                      ><span class="text-sm">リンクEmbedを抑制</span
+                      ><span class="text-sm">{{ t("notifications.suppressEmbeds") }}</span
                       ><ElSwitch v-model="form.discordSuppressEmbeds"
                     /></label>
                     <label class="inline-flex items-center gap-3"
-                      ><span class="text-sm">通知を抑制</span
+                      ><span class="text-sm">{{ t("notifications.suppressNotifications") }}</span
                       ><ElSwitch v-model="form.discordSuppressNotifications"
                     /></label>
                   </div>
 
                   <p class="text-xs text-base-content/50">
-                    メッセージ本文はダウン時/復旧時テンプレートからEmbed本文として送信されます。Username、Avatar
-                    URL、Embed項目はテンプレート変数を使えます。
+                    {{ t("notifications.discordNote") }}
                   </p>
                 </div>
               </ElCollapseItem>
             </ElCollapse>
 
             <label class="inline-flex items-center gap-3"
-              ><span class="text-sm">有効</span><ElSwitch v-model="form.active"
+              ><span class="text-sm">{{ t("monitorForm.active") }}</span
+              ><ElSwitch v-model="form.active"
             /></label>
           </div>
 
@@ -248,9 +265,9 @@
           />
 
           <div class="mt-6 flex justify-end gap-2">
-            <ElButton text type="primary" @click="resetPane">キャンセル</ElButton>
+            <ElButton text type="primary" @click="resetPane">{{ t("common.cancel") }}</ElButton>
             <ElButton native-type="submit" type="primary" :loading="saving">
-              {{ paneMode === "create" ? "追加" : "保存" }}
+              {{ paneMode === "create" ? t("common.add") : t("common.save") }}
             </ElButton>
           </div>
         </ElForm>
@@ -333,6 +350,7 @@ const selectedChannelId = ref<number | null>(null);
 const saving = ref(false);
 const testingId = ref<number | null>(null);
 const error = ref("");
+const { t } = useI18n();
 
 const form = ref<ChannelForm>(blankForm());
 
@@ -489,7 +507,7 @@ async function saveChannel() {
       }
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "保存に失敗しました";
+    error.value = e instanceof Error ? e.message : t("settings.saveFailed");
   } finally {
     saving.value = false;
   }
@@ -526,9 +544,13 @@ async function testSend(ch: Channel) {
   testingId.value = ch.id;
   try {
     await client.notification.test({ id: ch.id });
-    ElMessage.success(`テスト通知を「${ch.name}」に送信しました`);
+    ElMessage.success(t("notifications.testSent", { name: ch.name }));
   } catch (e) {
-    ElMessage.error(`失敗: ${e instanceof Error ? e.message : "不明なエラー"}`);
+    ElMessage.error(
+      t("notifications.testFailed", {
+        message: e instanceof Error ? e.message : t("common.unknownError"),
+      }),
+    );
   } finally {
     testingId.value = null;
   }
@@ -536,11 +558,15 @@ async function testSend(ch: Channel) {
 
 async function remove(ch: Channel) {
   try {
-    await ElMessageBox.confirm(`「${ch.name}」を削除しますか？`, "削除確認", {
-      confirmButtonText: "削除",
-      cancelButtonText: "キャンセル",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      t("notifications.deleteConfirm", { name: ch.name }),
+      t("monitor.deleteConfirmTitle"),
+      {
+        confirmButtonText: t("common.delete"),
+        cancelButtonText: t("common.cancel"),
+        type: "warning",
+      },
+    );
   } catch (e) {
     if (e !== "cancel" && e !== "close") {
       ElMessage.error(e instanceof Error ? e.message : String(e));

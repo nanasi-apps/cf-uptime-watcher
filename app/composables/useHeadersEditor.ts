@@ -9,12 +9,12 @@ const CONTENT_TYPE_OPTIONS = [
   "text/plain",
 ];
 
-function parseHeaders(headersText: string): Record<string, string> {
+function parseHeadersText(headersText: string, invalidMessage: string): Record<string, string> {
   if (!headersText.trim()) return {};
 
   const parsed: unknown = JSON.parse(headersText);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("カスタムヘッダーはJSONオブジェクトで入力してください");
+    throw new Error(invalidMessage);
   }
 
   return Object.fromEntries(
@@ -25,9 +25,9 @@ function parseHeaders(headersText: string): Record<string, string> {
   );
 }
 
-function tryParseHeaders(headersText: string): Record<string, string> {
+function tryParseHeadersText(headersText: string, invalidMessage: string): Record<string, string> {
   try {
-    return parseHeaders(headersText);
+    return parseHeadersText(headersText, invalidMessage);
   } catch {
     return {};
   }
@@ -39,6 +39,17 @@ function stringifyHeaders(headers: Record<string, string>): string {
 }
 
 export function useHeadersEditor(headersText: Ref<string>) {
+  const { t } = useI18n();
+  const invalidJsonObject = computed(() => t("headers.invalidJsonObject"));
+
+  function parseHeaders(headers: string) {
+    return parseHeadersText(headers, invalidJsonObject.value);
+  }
+
+  function tryParseHeaders(headers: string) {
+    return tryParseHeadersText(headers, invalidJsonObject.value);
+  }
+
   const selectedContentType = computed(() => {
     const headers = tryParseHeaders(headersText.value);
     const contentType = headers[CONTENT_TYPE_HEADER];

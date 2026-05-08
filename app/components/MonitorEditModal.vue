@@ -1,7 +1,7 @@
 <template>
   <ElDialog
     :model-value="open"
-    title="モニター編集"
+    :title="t('monitorForm.editTitle')"
     width="32rem"
     align-center
     @close="$emit('close')"
@@ -13,25 +13,25 @@
       @submit.prevent="handleSubmit"
     >
       <div class="mb-4">
-        <ElFormItem label="名前（内部用）" required
+        <ElFormItem :label="t('monitorForm.name')" required
           ><ElInput v-model="form.name" required
         /></ElFormItem>
       </div>
 
       <div class="mb-4">
-        <ElFormItem label="表示名（権限がない時に見える名前）"
+        <ElFormItem :label="t('monitorForm.displayName')"
           ><ElInput v-model="form.displayName"
         /></ElFormItem>
       </div>
 
       <div class="mb-4">
-        <ElFormItem label="URL" required
+        <ElFormItem :label="t('monitorForm.url')" required
           ><ElInput v-model="form.url" type="url" placeholder="https://example.com" required
         /></ElFormItem>
       </div>
 
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <ElFormItem label="メソッド"
+        <ElFormItem :label="t('monitorForm.method')"
           ><ElSelect v-model="form.method" class="w-full"
             ><ElOption
               v-for="option in methodOptions"
@@ -40,13 +40,13 @@
               :value="option.value" /></ElSelect
         ></ElFormItem>
 
-        <ElFormItem label="タイムアウト (秒)" required
+        <ElFormItem :label="t('monitorForm.timeoutSeconds')" required
           ><ElInput v-model="form.timeout" type="number" required min="1" max="120"
         /></ElFormItem>
       </div>
 
       <div class="mb-4">
-        <ElFormItem label="期待ステータス"
+        <ElFormItem :label="t('monitorForm.expectedStatus')"
           ><ElInput v-model="form.expectedStatus" type="number" min="100" max="599"
         /></ElFormItem>
       </div>
@@ -68,8 +68,8 @@
 
         <div class="mb-4">
           <ElCollapse
-            ><ElCollapseItem title="リクエストボディ"
-              ><ElFormItem label="ボディ"
+            ><ElCollapseItem :title="t('monitorForm.requestBody')"
+              ><ElFormItem :label="t('monitorForm.body')"
                 ><ElInput
                   v-model="form.body"
                   :rows="4"
@@ -81,8 +81,8 @@
 
       <div class="mb-4">
         <ElCollapse
-          ><ElCollapseItem title="カスタムヘッダー"
-            ><ElFormItem label="ヘッダー"
+          ><ElCollapseItem :title="t('monitorForm.customHeaders')"
+            ><ElFormItem :label="t('monitorForm.headers')"
               ><ElInput
                 v-model="form.headers"
                 :rows="3"
@@ -93,7 +93,8 @@
 
       <div class="form-control mb-4">
         <label class="inline-flex items-center gap-3"
-          ><span class="text-sm">有効</span><ElSwitch v-model="form.active"
+          ><span class="text-sm">{{ t("monitorForm.active") }}</span
+          ><ElSwitch v-model="form.active"
         /></label>
       </div>
 
@@ -107,8 +108,10 @@
       />
 
       <div class="flex justify-end gap-2 mt-6">
-        <ElButton text type="primary" @click="$emit('close')">キャンセル</ElButton>
-        <ElButton native-type="submit" type="primary" :loading="loading">保存</ElButton>
+        <ElButton text type="primary" @click="$emit('close')">{{ t("common.cancel") }}</ElButton>
+        <ElButton native-type="submit" type="primary" :loading="loading">{{
+          t("common.save")
+        }}</ElButton>
       </div>
     </ElForm>
   </ElDialog>
@@ -119,6 +122,7 @@ import type { MonitorWithStatus } from "./types";
 
 const props = defineProps<{ open: boolean; monitor: MonitorWithStatus | null }>();
 const emit = defineEmits<{ close: []; updated: [] }>();
+const { t } = useI18n();
 
 const form = ref({
   name: "",
@@ -150,11 +154,11 @@ const methodOptions = [
   { value: "POST", label: "POST" },
 ];
 
-const contentTypeOptions = [
-  { value: "", label: "なし" },
+const contentTypeOptions = computed(() => [
+  { value: "", label: t("settings.contentTypeNone") },
   ...CONTENT_TYPE_OPTIONS.map((ct) => ({ value: ct, label: ct })),
-  { value: "custom", label: "カスタム / ヘッダーJSONを保持" },
-];
+  { value: "custom", label: t("settings.contentTypeCustom") },
+]);
 
 watch(
   () => props.monitor,
@@ -198,7 +202,7 @@ async function handleSubmit() {
     emit("updated");
     emit("close");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "更新に失敗しました";
+    error.value = e instanceof Error ? e.message : t("import.updateFailed");
   } finally {
     loading.value = false;
   }

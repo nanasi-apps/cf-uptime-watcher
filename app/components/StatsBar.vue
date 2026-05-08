@@ -4,6 +4,7 @@
 
 <script lang="ts" setup>
 const props = defineProps<{ total: number; up: number; down: number }>();
+const { t } = useI18n();
 
 const alertType = computed(() => {
   if (props.total === 0) return "info";
@@ -13,9 +14,9 @@ const alertType = computed(() => {
 });
 
 const message = computed(() => {
-  if (props.total === 0) return "モニターがありません";
-  if (props.down === 0) return "全システム稼働中";
-  if (props.down === props.total) return "全システム停止中";
-  return `${props.down}件のシステムに問題が発生しています`;
+  if (props.total === 0) return t("stats.empty");
+  if (props.down === 0) return t("stats.allUp");
+  if (props.down === props.total) return t("stats.allDown");
+  return t("stats.partialDown", { count: props.down });
 });
 </script>
