@@ -26,6 +26,8 @@ It is designed for personal services, small teams, hobby projects, and lightweig
 - 🛠️ **HTTP monitor settings** - configure `GET` or `POST`, headers, body, timeout, expected status, and active state.
 - 📊 **Dashboard views** - list/grid monitor overview, status summary, detail page, and recent check history.
 - 🔐 **Admin workflow** - password login for creating, editing, duplicating, deleting, importing, and manually checking monitors.
+- 🛠️ **Maintenance windows** - schedule maintenance from the settings page; checks during the window are recorded as `maintenance` instead of `up` or `down`.
+- 🚨 **Incident information** - publish incident details when at least one monitor is currently down and no maintenance window is active.
 - 📦 **Bulk import** - upload a JSON array of monitors and optionally skip duplicate URLs.
 - 🔔 **Notifications** - Slack and Discord webhook channels with test sends and per-monitor channel assignment.
 - 🚦 **State-change alerts** - notifications are sent when a monitor goes down or recovers, not on every scheduled check.
@@ -169,6 +171,15 @@ Supported monitor fields:
 | `timeout`        | Timeout in seconds, from 1 to 120. Defaults to `30` in imports. |
 | `expectedStatus` | HTTP status that counts as healthy. Defaults to `200`.          |
 | `active`         | Whether scheduled checks should run.                            |
+
+### 🛠️ Maintenance And Incidents
+
+After logging in, use the Settings page to manage public status information:
+
+- **Maintenance** - create and edit scheduled maintenance windows from the Maintenance tab. Each window has a title, optional details, and start/end date-times. While a window is active, scheduled checks store `maintenance` in history instead of `up` or `down`, and uptime percentages ignore those maintenance records.
+- **Incidents** - create and edit incident information from the Incidents tab. A new incident can be created only when at least one monitor is currently down and no maintenance window is active. Resolved incidents stay in the incident history.
+
+The dashboard highlights active maintenance or incidents at the top of the monitor list, and monitor cards/history bars show maintenance with a separate warning color.
 
 ## 🔔 Notifications
 
