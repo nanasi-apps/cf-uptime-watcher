@@ -12,7 +12,7 @@
 - **Check history** — stores response time, HTTP status, and error messages for every check
 - **Uptime percentage** — computed per-monitor across all stored results
 - **Instant alerts** — notifies Slack and Discord when a monitor changes state (down → up or up → down)
-- **Custom notification templates** — use `{{monitor.name}}`, `{{status}}`, `{{responseTime}}`, `{{error}}`, etc.
+- **Custom notification templates** — set shared, down-only, and recovery-only messages with `{{monitor.name}}`, `{{status}}`, `{{responseTime}}`, `{{error}}`, etc.
 - **Bulk import** — import monitors from JSON with duplicate-skipping
 - **Type-safe REST API** — powered by [oRPC](https://orpc.unnoq.com) with an auto-generated OpenAPI spec
 - **Web dashboard** — built with Nuxt 4 + Vue 3, TailwindCSS, and DaisyUI
@@ -113,13 +113,15 @@ This runs `nuxi build && wrangler deploy` and publishes your Worker with the con
 
 Create a webhook in your Discord server (**Server Settings → Integrations → Webhooks**) and add a Discord channel via the dashboard or API.
 
+Discord channels can customize webhook payload fields such as `content`, `username`, `avatar_url`, and `tts` from the dashboard.
+
 ### Slack
 
 Create an [Incoming Webhook](https://api.slack.com/messaging/webhooks) for your Slack workspace and add it via the dashboard or API.
 
 ### Custom Templates
 
-Both channel types support a Mustache-style template string. Available variables:
+Both channel types support Mustache-style template strings. A down template is used when a monitor fails, and an up template is used when it recovers. Available variables:
 
 | Variable             | Description                       |
 | -------------------- | --------------------------------- |
