@@ -1,11 +1,14 @@
-import { DEFAULT_TEMPLATE, renderTemplate } from "./template";
+import { renderTemplate, resolveTemplate, type NotificationTemplates } from "./template";
 import type { Notifier, NotifyPayload } from "./types";
 
-export function createSlackNotifier(webhookUrl: string, template?: string | null): Notifier {
+export function createSlackNotifier(
+  webhookUrl: string,
+  templates: NotificationTemplates,
+): Notifier {
   return {
     name: "slack",
     async notify(payload: NotifyPayload) {
-      const message = renderTemplate(template ?? DEFAULT_TEMPLATE, payload);
+      const message = renderTemplate(resolveTemplate(templates, payload), payload);
       const isDown = !payload.result.isUp;
       const color = isDown ? "#ff0000" : "#00ff00";
 
