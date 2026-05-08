@@ -43,6 +43,13 @@
       "when": 1774598400000,
       "tag": "0005_flexible_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1774599000000,
+      "tag": "0006_expand_discord_payload",
+      "breakpoints": true
     }
   ]
 }
