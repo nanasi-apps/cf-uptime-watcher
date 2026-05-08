@@ -113,7 +113,7 @@ This runs `nuxi build && wrangler deploy` and publishes your Worker with the con
 
 Create a webhook in your Discord server (**Server Settings → Integrations → Webhooks**) and add a Discord channel via the dashboard or API.
 
-Discord channels can customize webhook payload fields such as `content`, `username`, `avatar_url`, and `tts` from the dashboard.
+Discord channels can customize webhook payload fields from the dashboard, including `content`, `username`, `avatar_url`, `tts`, embed fields, `allowed_mentions`, message flags, `thread_name`, and `applied_tags`. File uploads, components, and polls are not supported by the structured editor.
 
 ### Slack
 
