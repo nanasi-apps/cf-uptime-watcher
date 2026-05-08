@@ -116,13 +116,6 @@
             </AppCollapsible>
 
             <AppCollapsible v-if="form.type === 'discord'" title="Discord Payload設定">
-              <AppTextarea
-                v-model="form.discordContent"
-                label="Content"
-                :rows="3"
-                placeholder="{{status}} {{monitor.name}}"
-                monospace
-              />
               <AppInput v-model="form.discordUsername" label="Username" placeholder="Healthcheck" />
               <AppInput
                 v-model="form.discordAvatarUrl"
@@ -134,33 +127,29 @@
 
               <div class="settings-subsection">
                 <h3 class="mb-2 text-sm font-semibold">Embed</h3>
-                <div class="space-y-3">
-                  <AppToggle v-model="form.discordEmbedEnabled" label="Embedを送信" />
+                <div class="discord-field-group">
                   <AppInput
                     v-model="form.discordEmbedTitle"
-                    label="Title"
+                    label="Embed Title"
                     placeholder="{{monitor.name}}"
-                  />
-                  <AppTextarea
-                    v-model="form.discordEmbedDescription"
-                    label="Description"
-                    :rows="3"
-                    :placeholder="defaultTemplate"
-                    monospace
                   />
                   <AppInput
                     v-model="form.discordEmbedUrl"
-                    label="URL"
+                    label="Embed URL"
                     placeholder="{{monitor.url}}"
                   />
-                  <AppInput v-model="form.discordEmbedColor" label="Color" placeholder="#00ff00" />
+                  <AppInput
+                    v-model="form.discordEmbedColor"
+                    label="Embed Color"
+                    placeholder="#00ff00"
+                  />
                   <AppToggle v-model="form.discordEmbedTimestamp" label="Timestampを付ける" />
                 </div>
               </div>
 
               <div class="settings-subsection">
                 <h3 class="mb-2 text-sm font-semibold">Embed Author / Image / Footer</h3>
-                <div class="space-y-3">
+                <div class="discord-field-group">
                   <AppInput v-model="form.discordEmbedAuthorName" label="Author Name" />
                   <AppInput v-model="form.discordEmbedAuthorUrl" label="Author URL" />
                   <AppInput v-model="form.discordEmbedAuthorIconUrl" label="Author Icon URL" />
@@ -172,25 +161,19 @@
               </div>
 
               <div class="settings-subsection">
-                <h3 class="mb-2 text-sm font-semibold">Mentions / Flags / Thread</h3>
-                <div class="space-y-3">
+                <h3 class="mb-2 text-sm font-semibold">Mentions / Flags</h3>
+                <div class="discord-field-group">
                   <AppToggle v-model="form.discordAllowUserMentions" label="User mentionsを許可" />
                   <AppToggle v-model="form.discordAllowRoleMentions" label="Role mentionsを許可" />
                   <AppToggle v-model="form.discordAllowEveryoneMentions" label="@everyoneを許可" />
                   <AppToggle v-model="form.discordSuppressEmbeds" label="リンクEmbedを抑制" />
                   <AppToggle v-model="form.discordSuppressNotifications" label="通知を抑制" />
-                  <AppInput v-model="form.discordThreadName" label="Thread Name" />
-                  <AppInput
-                    v-model="form.discordAppliedTags"
-                    label="Applied Tags"
-                    placeholder="tag_id_1, tag_id_2"
-                  />
                 </div>
               </div>
 
               <p class="mt-2 text-xs text-base-content/50">
-                Content、Username、Avatar URL はテンプレート変数を使えます。未入力なら Embed
-                のみ送信します。Files、Components、Poll は未対応です。
+                メッセージ本文はダウン時/復旧時テンプレートからEmbed本文として送信されます。Username、Avatar
+                URL、Embed項目はテンプレート変数を使えます。
               </p>
             </AppCollapsible>
 
@@ -223,13 +206,10 @@ interface Channel {
   template: string | null;
   downTemplate: string | null;
   upTemplate: string | null;
-  discordContent: string | null;
   discordUsername: string | null;
   discordAvatarUrl: string | null;
   discordTts: boolean | null;
-  discordEmbedEnabled: boolean | null;
   discordEmbedTitle: string | null;
-  discordEmbedDescription: string | null;
   discordEmbedUrl: string | null;
   discordEmbedColor: string | null;
   discordEmbedAuthorName: string | null;
@@ -245,8 +225,6 @@ interface Channel {
   discordAllowEveryoneMentions: boolean | null;
   discordSuppressEmbeds: boolean | null;
   discordSuppressNotifications: boolean | null;
-  discordThreadName: string | null;
-  discordAppliedTags: string | null;
   active: boolean;
   createdAt: string;
 }
@@ -257,13 +235,10 @@ interface ChannelForm {
   webhookUrl: string;
   downTemplate: string;
   upTemplate: string;
-  discordContent: string;
   discordUsername: string;
   discordAvatarUrl: string;
   discordTts: boolean;
-  discordEmbedEnabled: boolean;
   discordEmbedTitle: string;
-  discordEmbedDescription: string;
   discordEmbedUrl: string;
   discordEmbedColor: string;
   discordEmbedAuthorName: string;
@@ -279,8 +254,6 @@ interface ChannelForm {
   discordAllowEveryoneMentions: boolean;
   discordSuppressEmbeds: boolean;
   discordSuppressNotifications: boolean;
-  discordThreadName: string;
-  discordAppliedTags: string;
   active: boolean;
 }
 
@@ -316,13 +289,10 @@ function blankForm(): ChannelForm {
     webhookUrl: "",
     downTemplate: "",
     upTemplate: "",
-    discordContent: "",
     discordUsername: "",
     discordAvatarUrl: "",
     discordTts: false,
-    discordEmbedEnabled: true,
     discordEmbedTitle: "",
-    discordEmbedDescription: "",
     discordEmbedUrl: "",
     discordEmbedColor: "",
     discordEmbedAuthorName: "",
@@ -338,8 +308,6 @@ function blankForm(): ChannelForm {
     discordAllowEveryoneMentions: false,
     discordSuppressEmbeds: false,
     discordSuppressNotifications: false,
-    discordThreadName: "",
-    discordAppliedTags: "",
     active: true,
   };
 }
@@ -351,13 +319,10 @@ function formFromChannel(channel: Channel): ChannelForm {
     webhookUrl: channel.webhookUrl,
     downTemplate: channel.downTemplate ?? "",
     upTemplate: channel.upTemplate ?? "",
-    discordContent: channel.discordContent ?? "",
     discordUsername: channel.discordUsername ?? "",
     discordAvatarUrl: channel.discordAvatarUrl ?? "",
     discordTts: channel.discordTts ?? false,
-    discordEmbedEnabled: channel.discordEmbedEnabled ?? true,
     discordEmbedTitle: channel.discordEmbedTitle ?? "",
-    discordEmbedDescription: channel.discordEmbedDescription ?? "",
     discordEmbedUrl: channel.discordEmbedUrl ?? "",
     discordEmbedColor: channel.discordEmbedColor ?? "",
     discordEmbedAuthorName: channel.discordEmbedAuthorName ?? "",
@@ -373,8 +338,6 @@ function formFromChannel(channel: Channel): ChannelForm {
     discordAllowEveryoneMentions: channel.discordAllowEveryoneMentions ?? false,
     discordSuppressEmbeds: channel.discordSuppressEmbeds ?? false,
     discordSuppressNotifications: channel.discordSuppressNotifications ?? false,
-    discordThreadName: channel.discordThreadName ?? "",
-    discordAppliedTags: channel.discordAppliedTags ?? "",
     active: channel.active,
   };
 }
@@ -408,13 +371,10 @@ function channelPayload() {
     webhookUrl: form.value.webhookUrl,
     downTemplate: form.value.downTemplate || null,
     upTemplate: form.value.upTemplate || null,
-    discordContent: isDiscord ? form.value.discordContent || null : null,
     discordUsername: isDiscord ? form.value.discordUsername || null : null,
     discordAvatarUrl: isDiscord ? form.value.discordAvatarUrl || null : null,
     discordTts: isDiscord ? form.value.discordTts : null,
-    discordEmbedEnabled: isDiscord ? form.value.discordEmbedEnabled : null,
     discordEmbedTitle: isDiscord ? form.value.discordEmbedTitle || null : null,
-    discordEmbedDescription: isDiscord ? form.value.discordEmbedDescription || null : null,
     discordEmbedUrl: isDiscord ? form.value.discordEmbedUrl || null : null,
     discordEmbedColor: isDiscord ? form.value.discordEmbedColor || null : null,
     discordEmbedAuthorName: isDiscord ? form.value.discordEmbedAuthorName || null : null,
@@ -430,8 +390,6 @@ function channelPayload() {
     discordAllowEveryoneMentions: isDiscord ? form.value.discordAllowEveryoneMentions : null,
     discordSuppressEmbeds: isDiscord ? form.value.discordSuppressEmbeds : null,
     discordSuppressNotifications: isDiscord ? form.value.discordSuppressNotifications : null,
-    discordThreadName: isDiscord ? form.value.discordThreadName || null : null,
-    discordAppliedTags: isDiscord ? form.value.discordAppliedTags || null : null,
     active: form.value.active,
   };
 }
@@ -475,12 +433,10 @@ function hasCustomSettings(ch: Channel) {
     ch.template ||
     ch.downTemplate ||
     ch.upTemplate ||
-    ch.discordContent ||
     ch.discordUsername ||
     ch.discordAvatarUrl ||
     ch.discordTts ||
     ch.discordEmbedTitle ||
-    ch.discordEmbedDescription ||
     ch.discordEmbedUrl ||
     ch.discordEmbedColor ||
     ch.discordEmbedAuthorName ||
@@ -495,9 +451,7 @@ function hasCustomSettings(ch: Channel) {
     ch.discordAllowRoleMentions ||
     ch.discordAllowEveryoneMentions ||
     ch.discordSuppressEmbeds ||
-    ch.discordSuppressNotifications ||
-    ch.discordThreadName ||
-    ch.discordAppliedTags
+    ch.discordSuppressNotifications
   );
 }
 
@@ -611,5 +565,11 @@ onMounted(load);
   padding: 0.75rem;
   background: var(--surface-hover);
   border-radius: 0.5rem;
+}
+
+.discord-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 }
 </style>
