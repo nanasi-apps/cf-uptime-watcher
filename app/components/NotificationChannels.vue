@@ -1,181 +1,163 @@
 <template>
-  <AppCard>
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-bold text-lg m-0">通知</h3>
-      <AppButton variant="outline" size="sm" @click="showAdd = true">+ Webhook追加</AppButton>
-    </div>
-
-    <div v-if="channels.length === 0" class="text-center py-4 text-base-content/50 text-sm">
-      通知チャンネルがありません。
-    </div>
-
-    <div class="space-y-2">
-      <div
-        v-for="ch in channels"
-        :key="ch.id"
-        class="flex items-center gap-3 p-3 rounded-lg bg-base-200"
-      >
-        <AppBadge :variant="ch.type === 'discord' ? 'primary' : 'secondary'" size="sm">
-          {{ ch.type }}
-        </AppBadge>
-        <div class="flex-1 min-w-0">
-          <div class="font-medium text-sm">{{ ch.name }}</div>
-          <div class="text-xs text-base-content/50 truncate">
-            {{ hasCustomSettings(ch) ? "カスタム設定" : "デフォルト設定" }}
-          </div>
+  <div class="notification-settings-layout">
+    <div class="notification-sidebar bg-base-100">
+      <div class="sidebar-header">
+        <span class="text-sm font-semibold">Webhook一覧</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-base-content/40">{{ channels.length }}件</span>
+          <AppButton variant="primary" size="xs" @click="startCreate">+ Webhook追加</AppButton>
         </div>
-        <AppButton variant="ghost" size="xs" :loading="testingId === ch.id" @click="testSend(ch)">
-          テスト
-        </AppButton>
-        <AppButton variant="ghost" size="xs" @click="openEdit(ch)">編集</AppButton>
-        <AppToggle v-model="ch.active" label="" @update:model-value="toggleActive(ch)" />
-        <AppButton variant="ghost" size="xs" class="text-error" @click="remove(ch)">X</AppButton>
+      </div>
+
+      <div class="sidebar-list">
+        <button
+          v-for="ch in channels"
+          :key="ch.id"
+          class="sidebar-item"
+          :class="{ active: paneMode === 'edit' && selectedChannelId === ch.id }"
+          @click="selectChannel(ch)"
+        >
+          <span class="sidebar-dot" :class="ch.active ? 'dot-active' : 'dot-inactive'"></span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <AppBadge :variant="ch.type === 'discord' ? 'primary' : 'secondary'" size="sm">
+                {{ ch.type }}
+              </AppBadge>
+              <span class="truncate text-sm font-medium">{{ ch.name }}</span>
+            </div>
+            <div class="mt-1 truncate text-xs text-base-content/50">
+              {{ hasCustomSettings(ch) ? "カスタム設定" : "デフォルト設定" }}
+            </div>
+          </div>
+        </button>
+
+        <div
+          v-if="channels.length === 0"
+          class="px-4 py-8 text-center text-sm text-base-content/40"
+        >
+          通知チャンネルがありません
+        </div>
       </div>
     </div>
 
-    <!-- Add dialog -->
-    <AppModal :open="showAdd" title="通知チャンネル追加" @close="showAdd = false">
-      <form @submit.prevent="handleCreate">
-        <div class="mb-4">
-          <AppInput v-model="form.name" label="名前" placeholder="本番アラート" required />
-        </div>
+    <div class="notification-content bg-base-100">
+      <div v-if="paneMode === 'idle'" class="py-16 text-center text-base-content/40">
+        左のリストからWebhookを選択、または新規作成してください
+      </div>
 
-        <div class="mb-4">
-          <AppSelect v-model="form.type" label="タイプ" :options="typeOptions" />
-        </div>
-
-        <div class="mb-4">
-          <AppInput
-            v-model="form.webhookUrl"
-            label="Webhook URL"
-            type="text"
-            placeholder="https://discord.com/api/webhooks/..."
-            required
-          />
-        </div>
-
-        <div class="mb-4">
-          <AppCollapsible title="メッセージテンプレート">
-            <AppTextarea
-              v-model="form.downTemplate"
-              label="ダウン時テンプレート"
-              :rows="5"
-              :placeholder="defaultTemplate"
-              monospace
-            />
-            <AppTextarea
-              v-model="form.upTemplate"
-              label="復旧時テンプレート"
-              :rows="5"
-              :placeholder="defaultTemplate"
-              monospace
-            />
-            <TemplateHelp />
-          </AppCollapsible>
-        </div>
-
-        <div v-if="form.type === 'discord'" class="mb-4">
-          <AppCollapsible title="Discord Payload設定">
-            <AppTextarea
-              v-model="form.discordContent"
-              label="Content"
-              :rows="3"
-              placeholder="{{status}} {{monitor.name}}"
-              monospace
-            />
-            <AppInput v-model="form.discordUsername" label="Username" placeholder="Healthcheck" />
-            <AppInput
-              v-model="form.discordAvatarUrl"
-              label="Avatar URL"
-              type="text"
-              placeholder="https://example.com/avatar.png"
-            />
-            <AppToggle v-model="form.discordTts" label="TTSで送信" />
-            <p class="mt-2 text-xs text-base-content/50">
-              Content、Username、Avatar URL はテンプレート変数を使えます。未入力なら Embed
-              のみ送信します。
+      <template v-else>
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="m-0 text-lg font-bold">
+              {{ paneMode === "create" ? "Webhook追加" : form.name || "Webhook編集" }}
+            </h2>
+            <p class="mt-1 mb-0 text-sm text-base-content/50">
+              {{
+                paneMode === "create"
+                  ? "新しい通知チャンネルを作成します"
+                  : "Webhookの通知内容とDiscord項目を編集します"
+              }}
             </p>
-          </AppCollapsible>
+          </div>
+          <div v-if="paneMode === 'edit' && selectedChannel" class="flex shrink-0 gap-2">
+            <AppButton
+              variant="outline"
+              size="sm"
+              :loading="testingId === selectedChannel.id"
+              @click="testSend(selectedChannel)"
+            >
+              テスト
+            </AppButton>
+            <AppButton variant="danger" size="sm" @click="remove(selectedChannel)">削除</AppButton>
+          </div>
         </div>
 
-        <AppAlert v-if="error" variant="error" class="text-sm mb-4">{{ error }}</AppAlert>
+        <form @submit.prevent="saveChannel">
+          <div class="space-y-4">
+            <AppInput v-model="form.name" label="名前" placeholder="本番アラート" required />
 
-        <div class="modal-action">
-          <AppButton variant="ghost" @click="showAdd = false">キャンセル</AppButton>
-          <AppButton type="submit" variant="primary" :loading="loading">追加</AppButton>
-        </div>
-      </form>
-    </AppModal>
-
-    <!-- Edit dialog -->
-    <AppModal :open="showEdit" title="チャンネル編集" @close="showEdit = false">
-      <form @submit.prevent="handleUpdate">
-        <div class="mb-4">
-          <AppInput v-model="editForm.name" label="名前" required />
-        </div>
-
-        <div class="mb-4">
-          <AppInput v-model="editForm.webhookUrl" label="Webhook URL" type="text" required />
-        </div>
-
-        <div class="mb-4">
-          <AppTextarea
-            v-model="editForm.downTemplate"
-            label="ダウン時テンプレート"
-            :rows="5"
-            :placeholder="defaultTemplate"
-            monospace
-          />
-          <AppTextarea
-            v-model="editForm.upTemplate"
-            label="復旧時テンプレート"
-            :rows="5"
-            :placeholder="defaultTemplate"
-            monospace
-          />
-          <TemplateHelp />
-        </div>
-
-        <div v-if="editForm.type === 'discord'" class="mb-4">
-          <AppCollapsible title="Discord Payload設定">
-            <AppTextarea
-              v-model="editForm.discordContent"
-              label="Content"
-              :rows="3"
-              placeholder="{{status}} {{monitor.name}}"
-              monospace
+            <AppSelect
+              v-if="paneMode === 'create'"
+              v-model="form.type"
+              label="タイプ"
+              :options="typeOptions"
             />
+            <div v-else class="flex items-center gap-2 rounded-lg bg-base-200 p-3">
+              <span class="text-sm text-base-content/50">タイプ</span>
+              <AppBadge :variant="form.type === 'discord' ? 'primary' : 'secondary'" size="sm">
+                {{ form.type }}
+              </AppBadge>
+            </div>
+
             <AppInput
-              v-model="editForm.discordUsername"
-              label="Username"
-              placeholder="Healthcheck"
-            />
-            <AppInput
-              v-model="editForm.discordAvatarUrl"
-              label="Avatar URL"
+              v-model="form.webhookUrl"
+              label="Webhook URL"
               type="text"
-              placeholder="https://example.com/avatar.png"
+              placeholder="https://discord.com/api/webhooks/..."
+              required
             />
-            <AppToggle v-model="editForm.discordTts" label="TTSで送信" />
-            <p class="mt-2 text-xs text-base-content/50">
-              Content、Username、Avatar URL はテンプレート変数を使えます。未入力なら Embed
-              のみ送信します。
-            </p>
-          </AppCollapsible>
-        </div>
 
-        <AppAlert v-if="editError" variant="error" class="text-sm mb-4">{{ editError }}</AppAlert>
+            <AppCollapsible title="メッセージテンプレート">
+              <AppTextarea
+                v-model="form.downTemplate"
+                label="ダウン時テンプレート"
+                :rows="5"
+                :placeholder="defaultTemplate"
+                monospace
+              />
+              <AppTextarea
+                v-model="form.upTemplate"
+                label="復旧時テンプレート"
+                :rows="5"
+                :placeholder="defaultTemplate"
+                monospace
+              />
+              <TemplateHelp />
+            </AppCollapsible>
 
-        <div class="modal-action">
-          <AppButton variant="ghost" @click="showEdit = false">キャンセル</AppButton>
-          <AppButton type="submit" variant="primary" :loading="editLoading">保存</AppButton>
-        </div>
-      </form>
-    </AppModal>
-  </AppCard>
+            <AppCollapsible v-if="form.type === 'discord'" title="Discord Payload設定">
+              <AppTextarea
+                v-model="form.discordContent"
+                label="Content"
+                :rows="3"
+                placeholder="{{status}} {{monitor.name}}"
+                monospace
+              />
+              <AppInput v-model="form.discordUsername" label="Username" placeholder="Healthcheck" />
+              <AppInput
+                v-model="form.discordAvatarUrl"
+                label="Avatar URL"
+                type="text"
+                placeholder="https://example.com/avatar.png"
+              />
+              <AppToggle v-model="form.discordTts" label="TTSで送信" />
+              <p class="mt-2 text-xs text-base-content/50">
+                Content、Username、Avatar URL はテンプレート変数を使えます。未入力なら Embed
+                のみ送信します。
+              </p>
+            </AppCollapsible>
+
+            <AppToggle v-model="form.active" label="有効" />
+          </div>
+
+          <AppAlert v-if="error" variant="error" class="mt-4 text-sm">{{ error }}</AppAlert>
+
+          <div class="mt-6 flex justify-end gap-2">
+            <AppButton variant="ghost" @click="resetPane">キャンセル</AppButton>
+            <AppButton type="submit" variant="primary" :loading="saving">
+              {{ paneMode === "create" ? "追加" : "保存" }}
+            </AppButton>
+          </div>
+        </form>
+      </template>
+    </div>
+  </div>
 </template>
 
 <script lang="ts" setup>
+type PaneMode = "idle" | "create" | "edit";
+type ChannelType = "discord" | "slack";
+
 interface Channel {
   id: number;
   type: string;
@@ -192,128 +174,142 @@ interface Channel {
   createdAt: string;
 }
 
+interface ChannelForm {
+  type: ChannelType;
+  name: string;
+  webhookUrl: string;
+  downTemplate: string;
+  upTemplate: string;
+  discordContent: string;
+  discordUsername: string;
+  discordAvatarUrl: string;
+  discordTts: boolean;
+  active: boolean;
+}
+
 const defaultTemplate =
   "[{{status}}] {{monitor.name}}\nURL: {{monitor.url}}\nStatus: {{statusCode}} | Response: {{responseTime}}\n{{error}}";
 
 const channels = ref<Channel[]>([]);
-const showAdd = ref(false);
-const showEdit = ref(false);
-const loading = ref(false);
-const editLoading = ref(false);
+const paneMode = ref<PaneMode>("idle");
+const selectedChannelId = ref<number | null>(null);
+const saving = ref(false);
 const testingId = ref<number | null>(null);
 const error = ref("");
-const editError = ref("");
 
-const form = ref({
-  name: "",
-  type: "discord",
-  webhookUrl: "",
-  downTemplate: "",
-  upTemplate: "",
-  discordContent: "",
-  discordUsername: "",
-  discordAvatarUrl: "",
-  discordTts: false,
-});
-
-const editForm = ref({
-  id: 0,
-  type: "discord",
-  name: "",
-  webhookUrl: "",
-  downTemplate: "",
-  upTemplate: "",
-  discordContent: "",
-  discordUsername: "",
-  discordAvatarUrl: "",
-  discordTts: false,
-});
+const form = ref<ChannelForm>(blankForm());
 
 const typeOptions = [
   { value: "discord", label: "Discord" },
   { value: "slack", label: "Slack" },
 ];
 
+const selectedChannel = computed(
+  () => channels.value.find((channel) => channel.id === selectedChannelId.value) ?? null,
+);
+
 async function load() {
   channels.value = await client.notification.list();
 }
 
-async function handleCreate() {
-  error.value = "";
-  loading.value = true;
-  try {
-    await client.notification.create({
-      name: form.value.name,
-      type: form.value.type as "discord" | "slack",
-      webhookUrl: form.value.webhookUrl,
-      downTemplate: form.value.downTemplate || null,
-      upTemplate: form.value.upTemplate || null,
-      discordContent: form.value.type === "discord" ? form.value.discordContent || null : null,
-      discordUsername: form.value.type === "discord" ? form.value.discordUsername || null : null,
-      discordAvatarUrl: form.value.type === "discord" ? form.value.discordAvatarUrl || null : null,
-      discordTts: form.value.type === "discord" ? form.value.discordTts : null,
-    });
-    form.value = {
-      name: "",
-      type: "discord",
-      webhookUrl: "",
-      downTemplate: "",
-      upTemplate: "",
-      discordContent: "",
-      discordUsername: "",
-      discordAvatarUrl: "",
-      discordTts: false,
-    };
-    showAdd.value = false;
-    await load();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : "チャンネルの追加に失敗しました";
-  } finally {
-    loading.value = false;
-  }
-}
-
-function openEdit(ch: Channel) {
-  editForm.value = {
-    id: ch.id,
-    type: ch.type,
-    name: ch.name,
-    webhookUrl: ch.webhookUrl,
-    downTemplate: ch.downTemplate ?? "",
-    upTemplate: ch.upTemplate ?? "",
-    discordContent: ch.discordContent ?? "",
-    discordUsername: ch.discordUsername ?? "",
-    discordAvatarUrl: ch.discordAvatarUrl ?? "",
-    discordTts: ch.discordTts ?? false,
+function blankForm(): ChannelForm {
+  return {
+    type: "discord",
+    name: "",
+    webhookUrl: "",
+    downTemplate: "",
+    upTemplate: "",
+    discordContent: "",
+    discordUsername: "",
+    discordAvatarUrl: "",
+    discordTts: false,
+    active: true,
   };
-  editError.value = "";
-  showEdit.value = true;
 }
 
-async function handleUpdate() {
-  editError.value = "";
-  editLoading.value = true;
+function formFromChannel(channel: Channel): ChannelForm {
+  return {
+    type: channel.type === "slack" ? "slack" : "discord",
+    name: channel.name,
+    webhookUrl: channel.webhookUrl,
+    downTemplate: channel.downTemplate ?? "",
+    upTemplate: channel.upTemplate ?? "",
+    discordContent: channel.discordContent ?? "",
+    discordUsername: channel.discordUsername ?? "",
+    discordAvatarUrl: channel.discordAvatarUrl ?? "",
+    discordTts: channel.discordTts ?? false,
+    active: channel.active,
+  };
+}
+
+function startCreate() {
+  paneMode.value = "create";
+  selectedChannelId.value = null;
+  form.value = blankForm();
+  error.value = "";
+}
+
+function selectChannel(channel: Channel) {
+  paneMode.value = "edit";
+  selectedChannelId.value = channel.id;
+  form.value = formFromChannel(channel);
+  error.value = "";
+}
+
+function resetPane() {
+  paneMode.value = "idle";
+  selectedChannelId.value = null;
+  form.value = blankForm();
+  error.value = "";
+}
+
+function channelPayload() {
+  const isDiscord = form.value.type === "discord";
+
+  return {
+    name: form.value.name,
+    webhookUrl: form.value.webhookUrl,
+    downTemplate: form.value.downTemplate || null,
+    upTemplate: form.value.upTemplate || null,
+    discordContent: isDiscord ? form.value.discordContent || null : null,
+    discordUsername: isDiscord ? form.value.discordUsername || null : null,
+    discordAvatarUrl: isDiscord ? form.value.discordAvatarUrl || null : null,
+    discordTts: isDiscord ? form.value.discordTts : null,
+    active: form.value.active,
+  };
+}
+
+async function saveChannel() {
+  error.value = "";
+  saving.value = true;
+
   try {
-    await client.notification.update({
-      id: editForm.value.id,
-      name: editForm.value.name,
-      webhookUrl: editForm.value.webhookUrl,
-      downTemplate: editForm.value.downTemplate || null,
-      upTemplate: editForm.value.upTemplate || null,
-      discordContent:
-        editForm.value.type === "discord" ? editForm.value.discordContent || null : null,
-      discordUsername:
-        editForm.value.type === "discord" ? editForm.value.discordUsername || null : null,
-      discordAvatarUrl:
-        editForm.value.type === "discord" ? editForm.value.discordAvatarUrl || null : null,
-      discordTts: editForm.value.type === "discord" ? editForm.value.discordTts : null,
-    });
-    showEdit.value = false;
-    await load();
+    if (paneMode.value === "create") {
+      const created = await client.notification.create({
+        type: form.value.type,
+        ...channelPayload(),
+      });
+      await load();
+      const createdChannel = channels.value.find((channel) => channel.id === created.id) ?? created;
+      selectChannel(createdChannel);
+      return;
+    }
+
+    if (paneMode.value === "edit" && selectedChannelId.value) {
+      await client.notification.update({
+        id: selectedChannelId.value,
+        ...channelPayload(),
+      });
+      await load();
+      const updatedChannel = selectedChannel.value;
+      if (updatedChannel) {
+        selectChannel(updatedChannel);
+      }
+    }
   } catch (e) {
-    editError.value = e instanceof Error ? e.message : "更新に失敗しました";
+    error.value = e instanceof Error ? e.message : "保存に失敗しました";
   } finally {
-    editLoading.value = false;
+    saving.value = false;
   }
 }
 
@@ -329,11 +325,6 @@ function hasCustomSettings(ch: Channel) {
   );
 }
 
-async function toggleActive(ch: Channel) {
-  await client.notification.update({ id: ch.id, active: !ch.active });
-  await load();
-}
-
 async function testSend(ch: Channel) {
   testingId.value = ch.id;
   try {
@@ -347,11 +338,96 @@ async function testSend(ch: Channel) {
 }
 
 async function remove(ch: Channel) {
-  if (confirm(`「${ch.name}」を削除しますか？`)) {
-    await client.notification.delete({ id: ch.id });
-    await load();
+  if (!confirm(`「${ch.name}」を削除しますか？`)) return;
+
+  await client.notification.delete({ id: ch.id });
+  if (selectedChannelId.value === ch.id) {
+    resetPane();
   }
+  await load();
 }
 
 onMounted(load);
 </script>
+
+<style scoped>
+.notification-settings-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  min-height: 500px;
+}
+
+@media (max-width: 768px) {
+  .notification-settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.notification-sidebar,
+.notification-content {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  align-self: start;
+}
+
+.notification-sidebar {
+  overflow: hidden;
+}
+
+.notification-content {
+  padding: 1.25rem;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-list {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-item:last-child {
+  border-bottom: none;
+}
+
+.sidebar-item:hover,
+.sidebar-item.active {
+  background: var(--surface-hover);
+}
+
+.sidebar-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.dot-active {
+  background-color: var(--status-up);
+}
+
+.dot-inactive {
+  background-color: var(--color-base-content, gray);
+  opacity: 0.3;
+}
+</style>
