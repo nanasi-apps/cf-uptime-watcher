@@ -8,7 +8,7 @@
             <h2 class="monitor-title">{{ monitor.name }}</h2>
             <ElTag :type="tagType" effect="light" round size="small">{{ statusText }}</ElTag>
           </div>
-          <div class="monitor-url">
+          <div v-if="isAdmin && monitor.url" class="monitor-url">
             <span class="method-badge">{{ monitor.method }}</span>
             {{ monitor.url }}
           </div>

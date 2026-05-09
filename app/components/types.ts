@@ -39,7 +39,7 @@ export interface MonitorWithStatus {
   id: number;
   name: string;
   displayName: string | null;
-  url: string;
+  url?: string;
   method: string;
   headers: string | null;
   body: string | null;

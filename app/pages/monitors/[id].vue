@@ -144,7 +144,7 @@ async function confirmDelete() {
 }
 
 async function duplicateMonitor() {
-  if (!monitor.value) return;
+  if (!monitor.value?.url) return;
   const m = monitor.value;
   try {
     const created = await client.monitor.create({

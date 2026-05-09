@@ -5,7 +5,7 @@ const MonitorSchema = z.object({
   id: z.number().int(),
   name: z.string(),
   displayName: z.string().nullable(), // 公開時に表示する名前
-  url: z.string(),
+  url: z.string().optional(),
   method: z.string(),
   headers: z.string().nullable(),
   body: z.string().nullable(),

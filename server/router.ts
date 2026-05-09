@@ -26,19 +26,27 @@ function isAuthenticated(context: Context): boolean {
   return !!(context.password && context.authToken && context.authToken === context.password);
 }
 
+type MonitorResponseData = {
+  displayName: string | null;
+  name: string;
+  url?: string;
+  headers?: string | null;
+  body?: string | null;
+};
+
 /**
- * 権限がない場合は、displayName と内部情報（url など）を隠す
+ * 権限がない場合は、displayName と内部情報（url など）を返さない
  */
-function maskMonitorData(monitor: Record<string, any>, hasAuth: boolean) {
+export function maskMonitorData<T extends MonitorResponseData>(monitor: T, hasAuth: boolean) {
   if (hasAuth) {
     return monitor; // 権限ありなら全て表示
   }
 
   // 権限がない場合：displayName があれば使用、なければ name を使用
+  const { url: _url, ...publicMonitor } = monitor;
   return {
-    ...monitor,
+    ...publicMonitor,
     name: monitor.displayName || monitor.name,
-    url: monitor.url || "Hidden",
     headers: null,
     body: null,
   };
