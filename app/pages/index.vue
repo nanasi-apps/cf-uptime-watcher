@@ -86,7 +86,7 @@ type DashboardData = {
 
 const client = useRpcClient();
 
-const { data: dashboardData, pending: loading } = await useAsyncData("dashboard", () =>
+const { data: dashboardData, pending: loading } = await useLazyAsyncData("dashboard", () =>
   loadDashboardData(),
 );
 
@@ -94,7 +94,7 @@ const monitors = ref<MonitorWithStatus[]>(dashboardData.value?.monitors ?? []);
 const statusInfo = ref<StatusInformation | null>(dashboardData.value?.statusInfo ?? null);
 const showCreateModal = ref(false);
 const showImportModal = ref(false);
-const isAdmin = ref(dashboardData.value?.isAdmin ?? false);
+const isAdmin = ref((dashboardData.value?.isAdmin ?? false) || hasLocalAuthToken());
 
 const { viewMode, init: initViewMode, set: setViewMode } = useViewMode();
 const { t } = useI18n();
@@ -121,9 +121,17 @@ const isAllSystemsUp = computed(
 
 async function refreshDashboard() {
   const data = await loadDashboardData();
+  applyDashboardData(data);
+}
+
+function applyDashboardData(data: DashboardData) {
   monitors.value = data.monitors;
   statusInfo.value = data.statusInfo;
-  isAdmin.value = data.isAdmin || Boolean(localStorage.getItem("auth_token"));
+  isAdmin.value = data.isAdmin || hasLocalAuthToken();
+}
+
+function hasLocalAuthToken() {
+  return import.meta.client && Boolean(localStorage.getItem("auth_token"));
 }
 
 async function loadDashboardData(): Promise<DashboardData> {
@@ -146,6 +154,10 @@ async function loadMonitors() {
 function handleViewModeChange(value: string | number | boolean) {
   if (value === "list" || value === "grid") setViewMode(value);
 }
+
+watch(dashboardData, (data) => {
+  if (data) applyDashboardData(data);
+});
 
 onMounted(() => {
   const token = localStorage.getItem("auth_token");
