@@ -1,8 +1,8 @@
 export default defineNuxtRouteMiddleware(async () => {
-  if (import.meta.server) return;
-
   const client = useRpcClient();
-  const token = localStorage.getItem("auth_token");
+  const { clear, read } = useAuthToken();
+  const token = read();
+
   if (!token) {
     return navigateTo("/login");
   }
@@ -10,7 +10,7 @@ export default defineNuxtRouteMiddleware(async () => {
   try {
     await client.auth.verify();
   } catch {
-    localStorage.removeItem("auth_token");
+    clear();
     return navigateTo("/login");
   }
 });

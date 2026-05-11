@@ -32,6 +32,7 @@ const error = ref("");
 const loading = ref(false);
 const { t } = useI18n();
 const client = useRpcClient();
+const { set: setAuthToken } = useAuthToken();
 
 async function handleLogin() {
   error.value = "";
@@ -39,9 +40,8 @@ async function handleLogin() {
   try {
     const result = await client.auth.login({ password: password.value });
     if (result.success) {
-      localStorage.setItem("auth_token", password.value);
-      document.cookie = `auth_token=${encodeURIComponent(password.value)}; path=/; SameSite=Lax`;
-      navigateTo("/");
+      setAuthToken(password.value);
+      await navigateTo("/");
     } else {
       error.value = t("login.invalidPassword");
     }

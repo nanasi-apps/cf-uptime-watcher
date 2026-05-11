@@ -49,8 +49,8 @@
 </template>
 
 <script lang="ts" setup>
-const token = ref<string | null>(null);
 const { locale, setLocale, t } = useI18n();
+const { clear: clearAuthToken, read: readAuthToken, token } = useAuthToken();
 
 const isLoggedIn = computed(() => !!token.value);
 
@@ -58,15 +58,13 @@ const { theme, init: initTheme, toggle: toggleTheme } = useTheme();
 const themeLabel = computed(() => (theme.value === "dark" ? t("theme.light") : t("theme.dark")));
 
 onMounted(() => {
-  token.value = localStorage.getItem("auth_token");
+  readAuthToken();
   initTheme();
 });
 
-function logout() {
-  localStorage.removeItem("auth_token");
-  document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
-  token.value = null;
-  navigateTo("/login");
+async function logout() {
+  clearAuthToken();
+  await navigateTo("/login");
 }
 </script>
 
