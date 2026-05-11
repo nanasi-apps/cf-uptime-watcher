@@ -627,6 +627,44 @@ const updateChannel = os.notification.update.handler(async ({ context, input }) 
     upTemplate: input.upTemplate ?? null,
     active: input.active,
   };
+  const preserveCurrentSecrets = current.type === input.type;
+  const clearedProviderFields = {
+    webhookUrl: null,
+    slackBotToken: null,
+    slackChannel: null,
+    telegramBotToken: null,
+    telegramChatId: null,
+    twilioAccountSid: null,
+    twilioAuthToken: null,
+    twilioFrom: null,
+    twilioTo: null,
+    discordContent: null,
+    discordUsername: null,
+    discordAvatarUrl: null,
+    discordTts: null,
+    discordEmbedEnabled: null,
+    discordEmbedTitle: null,
+    discordEmbedDescription: null,
+    discordDownEmbedDescription: null,
+    discordUpEmbedDescription: null,
+    discordEmbedUrl: null,
+    discordEmbedColor: null,
+    discordEmbedAuthorName: null,
+    discordEmbedAuthorUrl: null,
+    discordEmbedAuthorIconUrl: null,
+    discordEmbedThumbnailUrl: null,
+    discordEmbedImageUrl: null,
+    discordEmbedFooterText: null,
+    discordEmbedFooterIconUrl: null,
+    discordEmbedTimestamp: null,
+    discordAllowUserMentions: null,
+    discordAllowRoleMentions: null,
+    discordAllowEveryoneMentions: null,
+    discordSuppressEmbeds: null,
+    discordSuppressNotifications: null,
+    discordThreadName: null,
+    discordAppliedTags: null,
+  };
 
   await channelQueries.updateChannel(
     context.db,
@@ -634,9 +672,12 @@ const updateChannel = os.notification.update.handler(async ({ context, input }) 
     (() => {
       switch (input.type) {
         case "discord": {
-          const webhookUrl = normalizeSecretText(input.webhookUrl) ?? current.webhookUrl;
+          const webhookUrl =
+            normalizeSecretText(input.webhookUrl) ??
+            (preserveCurrentSecrets ? current.webhookUrl : null);
           validateChannelConfig({ type: input.type, webhookUrl });
           return {
+            ...clearedProviderFields,
             ...baseChannel,
             webhookUrl,
             discordContent: input.discordContent ?? null,
@@ -668,13 +709,16 @@ const updateChannel = os.notification.update.handler(async ({ context, input }) 
           };
         }
         case "slack": {
-          const slackBotToken = normalizeSecretText(input.slackBotToken) ?? current.slackBotToken;
+          const slackBotToken =
+            normalizeSecretText(input.slackBotToken) ??
+            (preserveCurrentSecrets ? current.slackBotToken : null);
           const channelConfig = {
             type: input.type,
             slackMode: input.slackMode,
             webhookUrl:
               input.slackMode === "webhook"
-                ? (normalizeSecretText(input.webhookUrl) ?? current.webhookUrl)
+                ? (normalizeSecretText(input.webhookUrl) ??
+                  (preserveCurrentSecrets ? current.webhookUrl : null))
                 : null,
             slackBotToken: input.slackMode === "bot" ? slackBotToken : null,
             slackChannel:
@@ -682,6 +726,7 @@ const updateChannel = os.notification.update.handler(async ({ context, input }) 
           };
           validateChannelConfig(channelConfig);
           return {
+            ...clearedProviderFields,
             ...baseChannel,
             webhookUrl: channelConfig.webhookUrl,
             slackBotToken: channelConfig.slackBotToken,
@@ -690,7 +735,8 @@ const updateChannel = os.notification.update.handler(async ({ context, input }) 
         }
         case "telegram": {
           const telegramBotToken =
-            normalizeSecretText(input.telegramBotToken) ?? current.telegramBotToken;
+            normalizeSecretText(input.telegramBotToken) ??
+            (preserveCurrentSecrets ? current.telegramBotToken : null);
           const channelConfig = {
             type: input.type,
             telegramBotToken,
@@ -698,20 +744,23 @@ const updateChannel = os.notification.update.handler(async ({ context, input }) 
           };
           validateChannelConfig(channelConfig);
           return {
+            ...clearedProviderFields,
             ...baseChannel,
-            webhookUrl: null,
             telegramBotToken,
             telegramChatId: channelConfig.telegramChatId,
           };
         }
         case "zapier": {
-          const webhookUrl = normalizeSecretText(input.webhookUrl) ?? current.webhookUrl;
+          const webhookUrl =
+            normalizeSecretText(input.webhookUrl) ??
+            (preserveCurrentSecrets ? current.webhookUrl : null);
           validateChannelConfig({ type: input.type, webhookUrl });
-          return { ...baseChannel, webhookUrl };
+          return { ...clearedProviderFields, ...baseChannel, webhookUrl };
         }
         case "twilio": {
           const twilioAuthToken =
-            normalizeSecretText(input.twilioAuthToken) ?? current.twilioAuthToken;
+            normalizeSecretText(input.twilioAuthToken) ??
+            (preserveCurrentSecrets ? current.twilioAuthToken : null);
           const channelConfig = {
             type: input.type,
             twilioAccountSid: normalizeOptionalText(input.twilioAccountSid),
@@ -721,8 +770,8 @@ const updateChannel = os.notification.update.handler(async ({ context, input }) 
           };
           validateChannelConfig(channelConfig);
           return {
+            ...clearedProviderFields,
             ...baseChannel,
-            webhookUrl: null,
             twilioAccountSid: channelConfig.twilioAccountSid,
             twilioAuthToken,
             twilioFrom: channelConfig.twilioFrom,
