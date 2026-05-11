@@ -19,6 +19,14 @@ export function getActiveChannels(db: DB) {
     .all();
 }
 
+export function getChannelById(db: DB, id: number) {
+  return db
+    .select()
+    .from(notificationChannelTable)
+    .where(eq(notificationChannelTable.id, id))
+    .get();
+}
+
 export function insertChannel(
   db: DB,
   channel: Omit<NotificationChannelInsert, "id" | "createdAt">,

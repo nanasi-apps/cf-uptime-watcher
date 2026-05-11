@@ -1,10 +1,13 @@
+import { discordTransport, type DiscordEmbed, type RenderedDiscord } from "@betternotify/discord";
 import { renderTemplate, resolveTemplate, type NotificationTemplates } from "./template";
 import type { Notifier, NotifyPayload } from "./types";
 
 type DiscordWebhookConfig = NotificationTemplates & {
+  discordContent?: string | null;
   discordUsername?: string | null;
   discordAvatarUrl?: string | null;
   discordTts?: boolean | null;
+  discordEmbedEnabled?: boolean | null;
   discordEmbedTitle?: string | null;
   discordEmbedUrl?: string | null;
   discordEmbedColor?: string | null;
@@ -21,13 +24,9 @@ type DiscordWebhookConfig = NotificationTemplates & {
   discordAllowEveryoneMentions?: boolean | null;
   discordSuppressEmbeds?: boolean | null;
   discordSuppressNotifications?: boolean | null;
+  discordThreadName?: string | null;
+  discordAppliedTags?: string | null;
 };
-
-type DiscordPayload = Record<string, unknown>;
-type DiscordEmbed = Record<string, unknown>;
-
-const FLAG_SUPPRESS_EMBEDS = 1 << 2;
-const FLAG_SUPPRESS_NOTIFICATIONS = 1 << 12;
 
 function renderOptional(value: string | null | undefined, payload: NotifyPayload) {
   return value ? renderTemplate(value, payload) : undefined;
@@ -41,28 +40,17 @@ function parseColor(value: string | null | undefined, fallback: number) {
   return Number.isFinite(color) ? color : fallback;
 }
 
-function buildAllowedMentions(config: DiscordWebhookConfig) {
-  const parse: string[] = [];
-  if (config.discordAllowUserMentions) parse.push("users");
-  if (config.discordAllowRoleMentions) parse.push("roles");
-  if (config.discordAllowEveryoneMentions) parse.push("everyone");
-  return { parse };
-}
-
-function buildFlags(config: DiscordWebhookConfig) {
-  let flags = 0;
-  if (config.discordSuppressEmbeds) flags |= FLAG_SUPPRESS_EMBEDS;
-  if (config.discordSuppressNotifications) flags |= FLAG_SUPPRESS_NOTIFICATIONS;
-  return flags || undefined;
-}
-
-function compactObject(object: DiscordEmbed) {
+function compactObject<T extends Record<string, unknown>>(object: T) {
   return Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
 }
 
-function buildEmbed(config: DiscordWebhookConfig, payload: NotifyPayload, defaultMessage: string) {
+function buildEmbed(
+  config: DiscordWebhookConfig,
+  payload: NotifyPayload,
+  defaultMessage: string,
+): DiscordEmbed {
   const defaultColor = payload.result.isUp ? 0x00ff00 : 0xff0000;
-  const embed = compactObject({
+  return compactObject({
     title: renderOptional(config.discordEmbedTitle, payload),
     description: defaultMessage,
     url: renderOptional(config.discordEmbedUrl, payload),
@@ -88,27 +76,23 @@ function buildEmbed(config: DiscordWebhookConfig, payload: NotifyPayload, defaul
         })
       : undefined,
   });
-
-  return embed;
 }
 
 export function buildDiscordPayload(
   config: DiscordWebhookConfig,
   payload: NotifyPayload,
-): DiscordPayload {
+): RenderedDiscord {
   const message = renderTemplate(resolveTemplate(config, payload), payload);
-  const discordPayload: DiscordPayload = {
+  const content = renderOptional(config.discordContent, payload);
+  const discordPayload: RenderedDiscord = {
+    body: content ?? message,
     username: renderOptional(config.discordUsername, payload),
-    avatar_url: renderOptional(config.discordAvatarUrl, payload),
-    tts: config.discordTts ?? undefined,
-    embeds: [buildEmbed(config, payload, message)],
-    allowed_mentions: buildAllowedMentions(config),
-    flags: buildFlags(config),
+    avatarUrl: renderOptional(config.discordAvatarUrl, payload),
+    embeds:
+      config.discordEmbedEnabled === false ? undefined : [buildEmbed(config, payload, message)],
   };
 
-  return Object.fromEntries(
-    Object.entries(discordPayload).filter(([, value]) => value !== undefined),
-  );
+  return discordPayload;
 }
 
 export function createDiscordNotifier(
@@ -117,10 +101,15 @@ export function createDiscordNotifier(
   return {
     name: "discord",
     async notify(payload: NotifyPayload) {
-      await fetch(config.webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildDiscordPayload(config, payload)),
+      const transport = discordTransport({
+        webhookUrl: config.webhookUrl,
+        username: config.discordUsername ?? undefined,
+        avatarUrl: config.discordAvatarUrl ?? undefined,
+      });
+      await transport.send(buildDiscordPayload(config, payload), {
+        route: "healthcheck.discord",
+        messageId: crypto.randomUUID(),
+        attempt: 1,
       });
     },
   };

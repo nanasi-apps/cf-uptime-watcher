@@ -2,9 +2,17 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const notificationChannelTable = sqliteTable("notification_channels", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  type: text("type").notNull(), // "discord" | "slack"
+  type: text("type").notNull(), // "discord" | "slack" | "telegram" | "zapier" | "twilio"
   name: text("name").notNull(),
-  webhookUrl: text("webhook_url").notNull(),
+  webhookUrl: text("webhook_url"),
+  slackBotToken: text("slack_bot_token"),
+  slackChannel: text("slack_channel"),
+  telegramBotToken: text("telegram_bot_token"),
+  telegramChatId: text("telegram_chat_id"),
+  twilioAccountSid: text("twilio_account_sid"),
+  twilioAuthToken: text("twilio_auth_token"),
+  twilioFrom: text("twilio_from"),
+  twilioTo: text("twilio_to"),
   template: text("template"), // custom message template with {{variables}}
   downTemplate: text("down_template"),
   upTemplate: text("up_template"),

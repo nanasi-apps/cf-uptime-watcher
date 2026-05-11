@@ -1,7 +1,10 @@
 import type { NotificationChannel } from "../../database/drizzle/schema/notification-channels";
 import { createDiscordNotifier } from "./discord";
 import { createSlackNotifier } from "./slack";
+import { createTelegramNotifier } from "./telegram";
+import { createTwilioNotifier } from "./twilio";
 import type { Notifier, NotifyPayload } from "./types";
+import { createZapierNotifier } from "./zapier";
 
 export type { Notifier, NotifyPayload };
 
@@ -10,6 +13,7 @@ export function buildNotifiersFromChannels(channels: NotificationChannel[]): Not
     .map((ch) => {
       switch (ch.type) {
         case "discord":
+          if (!ch.webhookUrl) return null;
           return createDiscordNotifier({
             webhookUrl: ch.webhookUrl,
             template: ch.template,
@@ -36,7 +40,40 @@ export function buildNotifiersFromChannels(channels: NotificationChannel[]): Not
             discordSuppressNotifications: ch.discordSuppressNotifications,
           });
         case "slack":
-          return createSlackNotifier(ch.webhookUrl, {
+          return createSlackNotifier({
+            webhookUrl: ch.webhookUrl,
+            slackBotToken: ch.slackBotToken,
+            slackChannel: ch.slackChannel,
+            template: ch.template,
+            downTemplate: ch.downTemplate,
+            upTemplate: ch.upTemplate,
+          });
+        case "telegram":
+          if (!ch.telegramBotToken || !ch.telegramChatId) return null;
+          return createTelegramNotifier({
+            telegramBotToken: ch.telegramBotToken,
+            telegramChatId: ch.telegramChatId,
+            template: ch.template,
+            downTemplate: ch.downTemplate,
+            upTemplate: ch.upTemplate,
+          });
+        case "zapier":
+          if (!ch.webhookUrl) return null;
+          return createZapierNotifier({
+            webhookUrl: ch.webhookUrl,
+            template: ch.template,
+            downTemplate: ch.downTemplate,
+            upTemplate: ch.upTemplate,
+          });
+        case "twilio":
+          if (!ch.twilioAccountSid || !ch.twilioAuthToken || !ch.twilioFrom || !ch.twilioTo) {
+            return null;
+          }
+          return createTwilioNotifier({
+            twilioAccountSid: ch.twilioAccountSid,
+            twilioAuthToken: ch.twilioAuthToken,
+            twilioFrom: ch.twilioFrom,
+            twilioTo: ch.twilioTo,
             template: ch.template,
             downTemplate: ch.downTemplate,
             upTemplate: ch.upTemplate,

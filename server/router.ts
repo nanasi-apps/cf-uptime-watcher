@@ -4,6 +4,7 @@ import * as mnQueries from "../database/drizzle/queries/monitor-notifications";
 import * as queries from "../database/drizzle/queries/monitors";
 import * as channelQueries from "../database/drizzle/queries/notification-channels";
 import * as statusQueries from "../database/drizzle/queries/status-events";
+import type { NotificationChannel } from "../database/drizzle/schema/notification-channels";
 import { performCheck } from "./check";
 import { contract } from "./contract";
 import { buildNotifiersFromChannels, sendNotifications } from "./notifiers";
@@ -13,6 +14,8 @@ type Context = {
   password: string;
   authToken: string | null;
 };
+
+const SECRET_MASK = "********";
 
 const os = implement(contract).$context<Context>();
 
@@ -24,6 +27,151 @@ function requireAuth(context: Context) {
 
 function isAuthenticated(context: Context): boolean {
   return !!(context.password && context.authToken && context.authToken === context.password);
+}
+
+function toNotificationChannelResponse(channel: NotificationChannel) {
+  const baseChannel = {
+    id: channel.id,
+    name: channel.name,
+    template: channel.template,
+    downTemplate: channel.downTemplate,
+    upTemplate: channel.upTemplate,
+    active: channel.active,
+    createdAt: channel.createdAt,
+  };
+
+  switch (channel.type) {
+    case "discord":
+      return {
+        ...baseChannel,
+        type: "discord" as const,
+        webhookUrl: channel.webhookUrl ? SECRET_MASK : null,
+        discordContent: channel.discordContent,
+        discordUsername: channel.discordUsername,
+        discordAvatarUrl: channel.discordAvatarUrl,
+        discordTts: channel.discordTts,
+        discordEmbedEnabled: channel.discordEmbedEnabled,
+        discordEmbedTitle: channel.discordEmbedTitle,
+        discordEmbedDescription: channel.discordEmbedDescription,
+        discordEmbedUrl: channel.discordEmbedUrl,
+        discordEmbedColor: channel.discordEmbedColor,
+        discordEmbedAuthorName: channel.discordEmbedAuthorName,
+        discordEmbedAuthorUrl: channel.discordEmbedAuthorUrl,
+        discordEmbedAuthorIconUrl: channel.discordEmbedAuthorIconUrl,
+        discordEmbedThumbnailUrl: channel.discordEmbedThumbnailUrl,
+        discordEmbedImageUrl: channel.discordEmbedImageUrl,
+        discordEmbedFooterText: channel.discordEmbedFooterText,
+        discordEmbedFooterIconUrl: channel.discordEmbedFooterIconUrl,
+        discordEmbedTimestamp: channel.discordEmbedTimestamp,
+        discordAllowUserMentions: channel.discordAllowUserMentions,
+        discordAllowRoleMentions: channel.discordAllowRoleMentions,
+        discordAllowEveryoneMentions: channel.discordAllowEveryoneMentions,
+        discordSuppressEmbeds: channel.discordSuppressEmbeds,
+        discordSuppressNotifications: channel.discordSuppressNotifications,
+        discordThreadName: channel.discordThreadName,
+        discordAppliedTags: channel.discordAppliedTags,
+      };
+    case "slack":
+      return {
+        ...baseChannel,
+        type: "slack" as const,
+        slackMode: channel.slackBotToken ? ("bot" as const) : ("webhook" as const),
+        webhookUrl: channel.webhookUrl ? SECRET_MASK : null,
+        slackBotToken: channel.slackBotToken ? SECRET_MASK : null,
+        slackChannel: channel.slackChannel,
+      };
+    case "telegram":
+      return {
+        ...baseChannel,
+        type: "telegram" as const,
+        telegramBotToken: channel.telegramBotToken ? SECRET_MASK : null,
+        telegramChatId: channel.telegramChatId,
+      };
+    case "zapier":
+      return {
+        ...baseChannel,
+        type: "zapier" as const,
+        webhookUrl: channel.webhookUrl ? SECRET_MASK : null,
+      };
+    case "twilio":
+      return {
+        ...baseChannel,
+        type: "twilio" as const,
+        twilioAccountSid: channel.twilioAccountSid,
+        twilioAuthToken: channel.twilioAuthToken ? SECRET_MASK : null,
+        twilioFrom: channel.twilioFrom,
+        twilioTo: channel.twilioTo,
+      };
+    default:
+      throw new ORPCError("BAD_REQUEST", { message: "Unsupported notification channel type" });
+  }
+}
+
+function normalizeOptionalText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function normalizeSecretText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === SECRET_MASK) return undefined;
+  return trimmed;
+}
+
+function validateChannelConfig(config: {
+  type: string;
+  webhookUrl?: string | null;
+  slackMode?: "webhook" | "bot";
+  slackBotToken?: string | null;
+  slackChannel?: string | null;
+  telegramBotToken?: string | null;
+  telegramChatId?: string | null;
+  twilioAccountSid?: string | null;
+  twilioAuthToken?: string | null;
+  twilioFrom?: string | null;
+  twilioTo?: string | null;
+}) {
+  if (["discord", "zapier"].includes(config.type) && !normalizeOptionalText(config.webhookUrl)) {
+    throw new ORPCError("BAD_REQUEST", { message: "Webhook URL is required" });
+  }
+
+  if (
+    config.type === "slack" &&
+    config.slackMode === "webhook" &&
+    !normalizeOptionalText(config.webhookUrl)
+  ) {
+    throw new ORPCError("BAD_REQUEST", { message: "Slack webhook URL is required" });
+  }
+
+  if (
+    config.type === "slack" &&
+    config.slackMode === "bot" &&
+    (!normalizeOptionalText(config.slackBotToken) || !normalizeOptionalText(config.slackChannel))
+  ) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Slack bot token and channel are required",
+    });
+  }
+
+  if (
+    config.type === "telegram" &&
+    (!normalizeOptionalText(config.telegramBotToken) ||
+      !normalizeOptionalText(config.telegramChatId))
+  ) {
+    throw new ORPCError("BAD_REQUEST", { message: "Telegram bot token and chat ID are required" });
+  }
+
+  if (
+    config.type === "twilio" &&
+    (!normalizeOptionalText(config.twilioAccountSid) ||
+      !normalizeOptionalText(config.twilioAuthToken) ||
+      !normalizeOptionalText(config.twilioFrom) ||
+      !normalizeOptionalText(config.twilioTo))
+  ) {
+    throw new ORPCError("BAD_REQUEST", {
+      message: "Twilio account SID, auth token, from, and to are required",
+    });
+  }
 }
 
 type MonitorResponseData = {
@@ -347,51 +495,237 @@ const resolveIncident = os.statusInfo.resolveIncident.handler(async ({ context, 
 // Notification channels (all protected)
 const listChannels = os.notification.list.handler(async ({ context }) => {
   requireAuth(context);
-  return channelQueries.getAllChannels(context.db);
+  return (await channelQueries.getAllChannels(context.db)).map(toNotificationChannelResponse);
 });
 
 const createChannel = os.notification.create.handler(async ({ context, input }) => {
   requireAuth(context);
-  const result = await channelQueries.insertChannel(context.db, {
+
+  const baseChannel = {
     type: input.type,
     name: input.name,
-    webhookUrl: input.webhookUrl,
     template: input.template ?? null,
     downTemplate: input.downTemplate ?? null,
     upTemplate: input.upTemplate ?? null,
-    discordContent: input.discordContent ?? null,
-    discordUsername: input.discordUsername ?? null,
-    discordAvatarUrl: input.discordAvatarUrl ?? null,
-    discordTts: input.discordTts ?? null,
-    discordEmbedEnabled: input.discordEmbedEnabled ?? null,
-    discordEmbedTitle: input.discordEmbedTitle ?? null,
-    discordEmbedDescription: input.discordEmbedDescription ?? null,
-    discordEmbedUrl: input.discordEmbedUrl ?? null,
-    discordEmbedColor: input.discordEmbedColor ?? null,
-    discordEmbedAuthorName: input.discordEmbedAuthorName ?? null,
-    discordEmbedAuthorUrl: input.discordEmbedAuthorUrl ?? null,
-    discordEmbedAuthorIconUrl: input.discordEmbedAuthorIconUrl ?? null,
-    discordEmbedThumbnailUrl: input.discordEmbedThumbnailUrl ?? null,
-    discordEmbedImageUrl: input.discordEmbedImageUrl ?? null,
-    discordEmbedFooterText: input.discordEmbedFooterText ?? null,
-    discordEmbedFooterIconUrl: input.discordEmbedFooterIconUrl ?? null,
-    discordEmbedTimestamp: input.discordEmbedTimestamp ?? null,
-    discordAllowUserMentions: input.discordAllowUserMentions ?? null,
-    discordAllowRoleMentions: input.discordAllowRoleMentions ?? null,
-    discordAllowEveryoneMentions: input.discordAllowEveryoneMentions ?? null,
-    discordSuppressEmbeds: input.discordSuppressEmbeds ?? null,
-    discordSuppressNotifications: input.discordSuppressNotifications ?? null,
-    discordThreadName: input.discordThreadName ?? null,
-    discordAppliedTags: input.discordAppliedTags ?? null,
     active: true,
-  });
-  return result[0]!;
+  };
+
+  const result = await channelQueries.insertChannel(
+    context.db,
+    (() => {
+      switch (input.type) {
+        case "discord": {
+          const webhookUrl = normalizeOptionalText(input.webhookUrl) ?? "";
+          validateChannelConfig({ type: input.type, webhookUrl });
+          return {
+            ...baseChannel,
+            webhookUrl,
+            discordContent: input.discordContent ?? null,
+            discordUsername: input.discordUsername ?? null,
+            discordAvatarUrl: input.discordAvatarUrl ?? null,
+            discordTts: input.discordTts ?? null,
+            discordEmbedEnabled: input.discordEmbedEnabled ?? null,
+            discordEmbedTitle: input.discordEmbedTitle ?? null,
+            discordEmbedDescription: input.discordEmbedDescription ?? null,
+            discordEmbedUrl: input.discordEmbedUrl ?? null,
+            discordEmbedColor: input.discordEmbedColor ?? null,
+            discordEmbedAuthorName: input.discordEmbedAuthorName ?? null,
+            discordEmbedAuthorUrl: input.discordEmbedAuthorUrl ?? null,
+            discordEmbedAuthorIconUrl: input.discordEmbedAuthorIconUrl ?? null,
+            discordEmbedThumbnailUrl: input.discordEmbedThumbnailUrl ?? null,
+            discordEmbedImageUrl: input.discordEmbedImageUrl ?? null,
+            discordEmbedFooterText: input.discordEmbedFooterText ?? null,
+            discordEmbedFooterIconUrl: input.discordEmbedFooterIconUrl ?? null,
+            discordEmbedTimestamp: input.discordEmbedTimestamp ?? null,
+            discordAllowUserMentions: input.discordAllowUserMentions ?? null,
+            discordAllowRoleMentions: input.discordAllowRoleMentions ?? null,
+            discordAllowEveryoneMentions: input.discordAllowEveryoneMentions ?? null,
+            discordSuppressEmbeds: input.discordSuppressEmbeds ?? null,
+            discordSuppressNotifications: input.discordSuppressNotifications ?? null,
+            discordThreadName: input.discordThreadName ?? null,
+            discordAppliedTags: input.discordAppliedTags ?? null,
+          };
+        }
+        case "slack": {
+          const channelConfig = {
+            type: input.type,
+            slackMode: input.slackMode,
+            webhookUrl:
+              input.slackMode === "webhook"
+                ? (normalizeOptionalText(input.webhookUrl) ?? "")
+                : null,
+            slackBotToken:
+              input.slackMode === "bot" ? normalizeOptionalText(input.slackBotToken) : null,
+            slackChannel:
+              input.slackMode === "bot" ? normalizeOptionalText(input.slackChannel) : null,
+          };
+          validateChannelConfig(channelConfig);
+          return {
+            ...baseChannel,
+            webhookUrl: channelConfig.webhookUrl,
+            slackBotToken: channelConfig.slackBotToken,
+            slackChannel: channelConfig.slackChannel,
+          };
+        }
+        case "telegram": {
+          const channelConfig = {
+            type: input.type,
+            telegramBotToken: normalizeOptionalText(input.telegramBotToken),
+            telegramChatId: normalizeOptionalText(input.telegramChatId),
+          };
+          validateChannelConfig(channelConfig);
+          return {
+            ...baseChannel,
+            webhookUrl: null,
+            telegramBotToken: channelConfig.telegramBotToken,
+            telegramChatId: channelConfig.telegramChatId,
+          };
+        }
+        case "zapier": {
+          const webhookUrl = normalizeOptionalText(input.webhookUrl) ?? "";
+          validateChannelConfig({ type: input.type, webhookUrl });
+          return { ...baseChannel, webhookUrl };
+        }
+        case "twilio": {
+          const channelConfig = {
+            type: input.type,
+            twilioAccountSid: normalizeOptionalText(input.twilioAccountSid),
+            twilioAuthToken: normalizeOptionalText(input.twilioAuthToken),
+            twilioFrom: normalizeOptionalText(input.twilioFrom),
+            twilioTo: normalizeOptionalText(input.twilioTo),
+          };
+          validateChannelConfig(channelConfig);
+          return {
+            ...baseChannel,
+            webhookUrl: null,
+            twilioAccountSid: channelConfig.twilioAccountSid,
+            twilioAuthToken: channelConfig.twilioAuthToken,
+            twilioFrom: channelConfig.twilioFrom,
+            twilioTo: channelConfig.twilioTo,
+          };
+        }
+      }
+    })(),
+  );
+  return toNotificationChannelResponse(result[0]!);
 });
 
 const updateChannel = os.notification.update.handler(async ({ context, input }) => {
   requireAuth(context);
-  const { id, ...rest } = input;
-  await channelQueries.updateChannel(context.db, id, rest);
+  const current = await channelQueries.getChannelById(context.db, input.id);
+  if (!current) throw new ORPCError("NOT_FOUND", { message: "Channel not found" });
+
+  const baseChannel = {
+    type: input.type,
+    name: input.name,
+    template: input.template ?? null,
+    downTemplate: input.downTemplate ?? null,
+    upTemplate: input.upTemplate ?? null,
+    active: input.active,
+  };
+
+  await channelQueries.updateChannel(
+    context.db,
+    input.id,
+    (() => {
+      switch (input.type) {
+        case "discord": {
+          const webhookUrl = normalizeSecretText(input.webhookUrl) ?? current.webhookUrl;
+          validateChannelConfig({ type: input.type, webhookUrl });
+          return {
+            ...baseChannel,
+            webhookUrl,
+            discordContent: input.discordContent ?? null,
+            discordUsername: input.discordUsername ?? null,
+            discordAvatarUrl: input.discordAvatarUrl ?? null,
+            discordTts: input.discordTts ?? null,
+            discordEmbedEnabled: input.discordEmbedEnabled ?? null,
+            discordEmbedTitle: input.discordEmbedTitle ?? null,
+            discordEmbedDescription: input.discordEmbedDescription ?? null,
+            discordEmbedUrl: input.discordEmbedUrl ?? null,
+            discordEmbedColor: input.discordEmbedColor ?? null,
+            discordEmbedAuthorName: input.discordEmbedAuthorName ?? null,
+            discordEmbedAuthorUrl: input.discordEmbedAuthorUrl ?? null,
+            discordEmbedAuthorIconUrl: input.discordEmbedAuthorIconUrl ?? null,
+            discordEmbedThumbnailUrl: input.discordEmbedThumbnailUrl ?? null,
+            discordEmbedImageUrl: input.discordEmbedImageUrl ?? null,
+            discordEmbedFooterText: input.discordEmbedFooterText ?? null,
+            discordEmbedFooterIconUrl: input.discordEmbedFooterIconUrl ?? null,
+            discordEmbedTimestamp: input.discordEmbedTimestamp ?? null,
+            discordAllowUserMentions: input.discordAllowUserMentions ?? null,
+            discordAllowRoleMentions: input.discordAllowRoleMentions ?? null,
+            discordAllowEveryoneMentions: input.discordAllowEveryoneMentions ?? null,
+            discordSuppressEmbeds: input.discordSuppressEmbeds ?? null,
+            discordSuppressNotifications: input.discordSuppressNotifications ?? null,
+            discordThreadName: input.discordThreadName ?? null,
+            discordAppliedTags: input.discordAppliedTags ?? null,
+          };
+        }
+        case "slack": {
+          const slackBotToken = normalizeSecretText(input.slackBotToken) ?? current.slackBotToken;
+          const channelConfig = {
+            type: input.type,
+            slackMode: input.slackMode,
+            webhookUrl:
+              input.slackMode === "webhook"
+                ? (normalizeSecretText(input.webhookUrl) ?? current.webhookUrl)
+                : null,
+            slackBotToken: input.slackMode === "bot" ? slackBotToken : null,
+            slackChannel:
+              input.slackMode === "bot" ? normalizeOptionalText(input.slackChannel) : null,
+          };
+          validateChannelConfig(channelConfig);
+          return {
+            ...baseChannel,
+            webhookUrl: channelConfig.webhookUrl,
+            slackBotToken: channelConfig.slackBotToken,
+            slackChannel: channelConfig.slackChannel,
+          };
+        }
+        case "telegram": {
+          const telegramBotToken =
+            normalizeSecretText(input.telegramBotToken) ?? current.telegramBotToken;
+          const channelConfig = {
+            type: input.type,
+            telegramBotToken,
+            telegramChatId: normalizeOptionalText(input.telegramChatId),
+          };
+          validateChannelConfig(channelConfig);
+          return {
+            ...baseChannel,
+            webhookUrl: null,
+            telegramBotToken,
+            telegramChatId: channelConfig.telegramChatId,
+          };
+        }
+        case "zapier": {
+          const webhookUrl = normalizeSecretText(input.webhookUrl) ?? current.webhookUrl;
+          validateChannelConfig({ type: input.type, webhookUrl });
+          return { ...baseChannel, webhookUrl };
+        }
+        case "twilio": {
+          const twilioAuthToken =
+            normalizeSecretText(input.twilioAuthToken) ?? current.twilioAuthToken;
+          const channelConfig = {
+            type: input.type,
+            twilioAccountSid: normalizeOptionalText(input.twilioAccountSid),
+            twilioAuthToken,
+            twilioFrom: normalizeOptionalText(input.twilioFrom),
+            twilioTo: normalizeOptionalText(input.twilioTo),
+          };
+          validateChannelConfig(channelConfig);
+          return {
+            ...baseChannel,
+            webhookUrl: null,
+            twilioAccountSid: channelConfig.twilioAccountSid,
+            twilioAuthToken,
+            twilioFrom: channelConfig.twilioFrom,
+            twilioTo: channelConfig.twilioTo,
+          };
+        }
+      }
+    })(),
+  );
   return { status: "OK" as const };
 });
 
@@ -403,9 +737,8 @@ const deleteChannel = os.notification.delete.handler(async ({ context, input }) 
 
 const testChannel = os.notification.test.handler(async ({ context, input }) => {
   requireAuth(context);
-  const channels = await channelQueries.getAllChannels(context.db);
-  const channel = channels.find((c) => c.id === input.id);
-  if (!channel) throw new Error("Channel not found");
+  const channel = await channelQueries.getChannelById(context.db, input.id);
+  if (!channel) throw new ORPCError("NOT_FOUND", { message: "Channel not found" });
 
   const notifiers = buildNotifiersFromChannels([channel]);
   await sendNotifications(notifiers, {
