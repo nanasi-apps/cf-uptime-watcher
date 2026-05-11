@@ -171,20 +171,76 @@
 
             <ElCollapse>
               <ElCollapseItem :title="t('notifications.messageTemplate')">
-                <ElFormItem :label="t('notifications.downTemplate')"
-                  ><ElInput
-                    v-model="form.downTemplate"
-                    :rows="5"
-                    :placeholder="defaultTemplate"
-                    type="textarea"
-                /></ElFormItem>
-                <ElFormItem :label="t('notifications.upTemplate')"
-                  ><ElInput
-                    v-model="form.upTemplate"
-                    :rows="5"
-                    :placeholder="defaultTemplate"
-                    type="textarea"
-                /></ElFormItem>
+                <template v-if="form.type === 'discord'">
+                  <ElFormItem :label="t('notifications.standardContentTemplate')">
+                    <ElInput
+                      v-model="form.discordContent"
+                      :rows="3"
+                      placeholder="@team {{monitor.name}} がダウンしています"
+                      type="textarea"
+                    />
+                  </ElFormItem>
+                  <ElFormItem :label="t('notifications.standardEmbedTemplate')">
+                    <ElInput
+                      v-model="form.discordEmbedDescription"
+                      :rows="5"
+                      :placeholder="discordDefaultEmbedContent"
+                      type="textarea"
+                    />
+                  </ElFormItem>
+                  <ElCollapse class="template-detail-collapse">
+                    <ElCollapseItem :title="t('notifications.templateDetails')">
+                      <ElFormItem :label="t('notifications.downContentTemplate')">
+                        <ElInput
+                          v-model="form.downTemplate"
+                          :rows="5"
+                          :placeholder="defaultTemplate"
+                          type="textarea"
+                        />
+                      </ElFormItem>
+                      <ElFormItem :label="t('notifications.downEmbedTemplate')">
+                        <ElInput
+                          v-model="form.discordDownEmbedDescription"
+                          :rows="5"
+                          :placeholder="discordDefaultEmbedContent"
+                          type="textarea"
+                        />
+                      </ElFormItem>
+                      <ElFormItem :label="t('notifications.upContentTemplate')">
+                        <ElInput
+                          v-model="form.upTemplate"
+                          :rows="5"
+                          :placeholder="defaultTemplate"
+                          type="textarea"
+                        />
+                      </ElFormItem>
+                      <ElFormItem :label="t('notifications.upEmbedTemplate')">
+                        <ElInput
+                          v-model="form.discordUpEmbedDescription"
+                          :rows="5"
+                          :placeholder="discordRecoveryEmbedContent"
+                          type="textarea"
+                        />
+                      </ElFormItem>
+                    </ElCollapseItem>
+                  </ElCollapse>
+                </template>
+                <template v-else>
+                  <ElFormItem :label="t('notifications.downTemplate')"
+                    ><ElInput
+                      v-model="form.downTemplate"
+                      :rows="5"
+                      :placeholder="defaultTemplate"
+                      type="textarea"
+                  /></ElFormItem>
+                  <ElFormItem :label="t('notifications.upTemplate')"
+                    ><ElInput
+                      v-model="form.upTemplate"
+                      :rows="5"
+                      :placeholder="defaultTemplate"
+                      type="textarea"
+                  /></ElFormItem>
+                </template>
                 <TemplateHelp />
               </ElCollapseItem>
             </ElCollapse>
@@ -213,8 +269,10 @@
 
                   <div class="settings-subsection">
                     <h3 class="text-sm font-semibold">{{ t("notifications.embed") }}</h3>
-                    <ElFormItem label="Embed Title"
-                      ><ElInput v-model="form.discordEmbedTitle" placeholder="{{monitor.name}}"
+                    <ElFormItem :label="t('notifications.discordEmbedTitle')"
+                      ><ElInput
+                        v-model="form.discordEmbedTitle"
+                        placeholder="ダウンした時のレポート"
                     /></ElFormItem>
                     <ElFormItem label="Embed URL"
                       ><ElInput v-model="form.discordEmbedUrl" placeholder="{{monitor.url}}"
@@ -335,10 +393,14 @@ interface Channel {
   template: string | null;
   downTemplate: string | null;
   upTemplate: string | null;
+  discordContent?: string | null;
   discordUsername?: string | null;
   discordAvatarUrl?: string | null;
   discordTts?: boolean | null;
   discordEmbedTitle?: string | null;
+  discordEmbedDescription?: string | null;
+  discordDownEmbedDescription?: string | null;
+  discordUpEmbedDescription?: string | null;
   discordEmbedUrl?: string | null;
   discordEmbedColor?: string | null;
   discordEmbedAuthorName?: string | null;
@@ -373,10 +435,14 @@ interface ChannelForm {
   twilioTo: string;
   downTemplate: string;
   upTemplate: string;
+  discordContent: string;
   discordUsername: string;
   discordAvatarUrl: string;
   discordTts: boolean;
   discordEmbedTitle: string;
+  discordEmbedDescription: string;
+  discordDownEmbedDescription: string;
+  discordUpEmbedDescription: string;
   discordEmbedUrl: string;
   discordEmbedColor: string;
   discordEmbedAuthorName: string;
@@ -464,10 +530,14 @@ function blankForm(): ChannelForm {
     twilioTo: "",
     downTemplate: "",
     upTemplate: "",
+    discordContent: "",
     discordUsername: "",
     discordAvatarUrl: "",
     discordTts: false,
     discordEmbedTitle: "",
+    discordEmbedDescription: "",
+    discordDownEmbedDescription: "",
+    discordUpEmbedDescription: "",
     discordEmbedUrl: "",
     discordEmbedColor: "",
     discordEmbedAuthorName: "",
@@ -503,10 +573,14 @@ function formFromChannel(channel: Channel): ChannelForm {
     twilioTo: channel.twilioTo ?? "",
     downTemplate: channel.downTemplate ?? "",
     upTemplate: channel.upTemplate ?? "",
+    discordContent: channel.discordContent ?? "",
     discordUsername: channel.discordUsername ?? "",
     discordAvatarUrl: channel.discordAvatarUrl ?? "",
     discordTts: channel.discordTts ?? false,
     discordEmbedTitle: channel.discordEmbedTitle ?? "",
+    discordEmbedDescription: channel.discordEmbedDescription ?? "",
+    discordDownEmbedDescription: channel.discordDownEmbedDescription ?? "",
+    discordUpEmbedDescription: channel.discordUpEmbedDescription ?? "",
     discordEmbedUrl: channel.discordEmbedUrl ?? "",
     discordEmbedColor: channel.discordEmbedColor ?? "",
     discordEmbedAuthorName: channel.discordEmbedAuthorName ?? "",
@@ -581,10 +655,14 @@ function channelPayload() {
     twilioTo: isTwilio ? form.value.twilioTo || null : null,
     downTemplate: form.value.downTemplate || null,
     upTemplate: form.value.upTemplate || null,
+    discordContent: isDiscord ? form.value.discordContent || null : null,
     discordUsername: isDiscord ? form.value.discordUsername || null : null,
     discordAvatarUrl: isDiscord ? form.value.discordAvatarUrl || null : null,
     discordTts: isDiscord ? form.value.discordTts : null,
     discordEmbedTitle: isDiscord ? form.value.discordEmbedTitle || null : null,
+    discordEmbedDescription: isDiscord ? form.value.discordEmbedDescription || null : null,
+    discordDownEmbedDescription: isDiscord ? form.value.discordDownEmbedDescription || null : null,
+    discordUpEmbedDescription: isDiscord ? form.value.discordUpEmbedDescription || null : null,
     discordEmbedUrl: isDiscord ? form.value.discordEmbedUrl || null : null,
     discordEmbedColor: isDiscord ? form.value.discordEmbedColor || null : null,
     discordEmbedAuthorName: isDiscord ? form.value.discordEmbedAuthorName || null : null,
