@@ -556,6 +556,9 @@ type SettingsData = {
 };
 
 const client = useRpcClient();
+const { syncCookie: syncAuthCookie } = useAuthToken();
+
+definePageMeta({ middleware: "auth" });
 
 const { data: settingsData } = await useAsyncData("settings-data", () => loadSettingsData());
 
@@ -1079,12 +1082,7 @@ async function loadChannels() {
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem("auth_token");
-  if (!token) {
-    navigateTo("/login");
-    return;
-  }
-  document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
+  syncAuthCookie();
   await Promise.all([loadMonitors(), loadChannels(), loadStatusInfo()]);
 });
 </script>

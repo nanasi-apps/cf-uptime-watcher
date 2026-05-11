@@ -47,7 +47,7 @@
       v-for="monitor in monitors"
       :key="monitor.id"
       :monitor="monitor"
-      @click="navigateTo(`/monitors/${monitor.id}`)"
+      @click="openMonitor(monitor.id)"
     />
   </div>
 
@@ -57,7 +57,7 @@
       v-for="monitor in monitors"
       :key="monitor.id"
       :monitor="monitor"
-      @click="navigateTo(`/monitors/${monitor.id}`)"
+      @click="openMonitor(monitor.id)"
     />
   </div>
 
@@ -85,6 +85,7 @@ type DashboardData = {
 };
 
 const client = useRpcClient();
+const { read: readAuthToken, syncCookie: syncAuthCookie } = useAuthToken();
 
 const { data: dashboardData, pending: loading } = await useLazyAsyncData("dashboard", () =>
   loadDashboardData(),
@@ -131,7 +132,7 @@ function applyDashboardData(data: DashboardData) {
 }
 
 function hasLocalAuthToken() {
-  return import.meta.client && Boolean(localStorage.getItem("auth_token"));
+  return Boolean(readAuthToken());
 }
 
 async function loadDashboardData(): Promise<DashboardData> {
@@ -155,13 +156,16 @@ function handleViewModeChange(value: string | number | boolean) {
   if (value === "list" || value === "grid") setViewMode(value);
 }
 
+async function openMonitor(id: number) {
+  await navigateTo(`/monitors/${id}`);
+}
+
 watch(dashboardData, (data) => {
   if (data) applyDashboardData(data);
 });
 
 onMounted(() => {
-  const token = localStorage.getItem("auth_token");
-  if (token) document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
+  const token = syncAuthCookie();
   isAdmin.value = isAdmin.value || Boolean(token);
   initViewMode();
 });
