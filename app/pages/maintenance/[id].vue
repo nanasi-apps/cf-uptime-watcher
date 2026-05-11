@@ -65,7 +65,7 @@
     </ElCard>
 
     <ElEmpty v-else :description="t('maintenance.notFound')">
-      <ElButton type="primary" @click="navigateTo('/')">
+      <ElButton type="primary" @click="goHome">
         {{ t("settings.home") }}
       </ElButton>
     </ElEmpty>
@@ -80,13 +80,15 @@ const { t } = useI18n();
 const client = useRpcClient();
 
 const maintenanceId = computed(() => parseMaintenanceId(route.params.id, route.path));
+const maintenanceDataKey = computed(() => `maintenance-${maintenanceId.value ?? "invalid"}`);
 if (maintenanceId.value === null) {
   await navigateTo("/");
 }
 
 const { data: maintenanceData, pending: loading } = await useAsyncData(
-  `maintenance-${maintenanceId.value ?? "invalid"}`,
+  maintenanceDataKey,
   () => loadMaintenanceData(),
+  { watch: [maintenanceId] },
 );
 
 const maintenance = computed(() => maintenanceData.value?.maintenance ?? null);
@@ -142,6 +144,14 @@ async function loadMaintenanceData(): Promise<{
   ]);
 
   return { maintenance, monitors };
+}
+
+watch(maintenanceId, async (id) => {
+  if (id === null) await navigateTo("/");
+});
+
+async function goHome() {
+  await navigateTo("/");
 }
 
 function formatDate(iso: string) {

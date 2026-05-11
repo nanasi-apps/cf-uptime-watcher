@@ -57,19 +57,21 @@ import type { MonitorWithStatus, CheckResult } from "~/components/types";
 
 const route = useRoute();
 const monitorId = computed(() => parseMonitorId(route.params.id, route.path));
+const monitorDataKey = computed(() => `monitor-${monitorId.value ?? "invalid"}`);
 const { t } = useI18n();
 const client = useRpcClient();
+const { syncCookie: syncAuthCookie } = useAuthToken();
 
 if (monitorId.value === null) {
   await navigateTo("/");
 }
 
-const { data: monitorData } = await useAsyncData(`monitor-${monitorId.value ?? "invalid"}`, () =>
-  loadMonitorData(),
-);
+const { data: monitorData } = await useAsyncData(monitorDataKey, () => loadMonitorData(), {
+  watch: [monitorId],
+});
 
-const monitor = ref<MonitorWithStatus | null>(monitorData.value?.monitor ?? null);
-const history = ref<CheckResult[]>(monitorData.value?.history ?? []);
+const monitor = ref<MonitorWithStatus | null>(null);
+const history = ref<CheckResult[]>([]);
 const checking = ref(false);
 const isAdmin = ref(false);
 const showEditModal = ref(false);
@@ -108,6 +110,19 @@ async function loadMonitorData(): Promise<{
   return { monitor, history };
 }
 
+watch(
+  monitorData,
+  (data) => {
+    monitor.value = data?.monitor ?? null;
+    history.value = data?.history ?? [];
+  },
+  { immediate: true },
+);
+
+watch(monitorId, async (id) => {
+  if (id === null) await navigateTo("/");
+});
+
 async function checkNow() {
   if (monitorId.value === null) return;
 
@@ -140,7 +155,7 @@ async function confirmDelete() {
   if (monitorId.value === null) return;
 
   await client.monitor.delete({ id: monitorId.value });
-  navigateTo("/");
+  await navigateTo("/");
 }
 
 async function duplicateMonitor() {
@@ -156,7 +171,7 @@ async function duplicateMonitor() {
       timeout: m.timeout,
       expectedStatus: m.expectedStatus,
     });
-    navigateTo(`/monitors/${created.id}`);
+    await navigateTo(`/monitors/${created.id}`);
   } catch (e) {
     ElMessage.error(
       t("monitor.duplicateFailed", {
@@ -167,9 +182,7 @@ async function duplicateMonitor() {
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem("auth_token");
-  if (token) document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
-  isAdmin.value = Boolean(token);
+  isAdmin.value = Boolean(syncAuthCookie());
 });
 </script>
 

@@ -87,8 +87,8 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleString();
 }
 
-function navigateToMaintenance(id: number) {
-  navigateTo(`/maintenance/${id}`);
+async function navigateToMaintenance(id: number) {
+  await navigateTo(`/maintenance/${id}`);
 }
 </script>
 
