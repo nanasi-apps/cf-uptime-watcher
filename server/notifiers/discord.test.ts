@@ -27,40 +27,53 @@ const payload: NotifyPayload = {
 };
 
 describe("buildDiscordPayload", () => {
-  test("builds the default embed payload", () => {
+  test("builds the default Better Notify Discord payload", () => {
     const body = buildDiscordPayload({}, payload);
 
+    expect(body.body).toBe("");
     expect(body.embeds).toMatchObject([
       {
-        description: expect.stringContaining("[DOWN] API"),
+        title: "ダウンした時のレポート",
+        description: expect.stringContaining("対象: API"),
         color: 0xff0000,
       },
     ]);
   });
 
-  test("adds configured Discord webhook fields", () => {
+  test("adds Better Notify Discord identity fields", () => {
     const body = buildDiscordPayload(
       {
         discordUsername: "Healthcheck",
         discordAvatarUrl: "https://example.com/avatar.png",
-        discordTts: true,
       },
       payload,
     );
 
     expect(body).toMatchObject({
       username: "Healthcheck",
-      avatar_url: "https://example.com/avatar.png",
-      tts: true,
-      allowed_mentions: { parse: [] },
-      embeds: [{ description: expect.stringContaining("[DOWN] API") }],
+      avatarUrl: "https://example.com/avatar.png",
+      embeds: [{ title: "ダウンした時のレポート" }],
     });
   });
 
-  test("builds extended embed, mention, flag, and thread fields", () => {
+  test("uses custom content as the Discord body and disables embeds when configured", () => {
+    const body = buildDiscordPayload(
+      {
+        discordContent: "{{monitor.name}} plain text",
+        discordEmbedEnabled: false,
+      },
+      payload,
+    );
+
+    expect(body).toMatchObject({ body: "API plain text" });
+    expect(body.embeds).toBeUndefined();
+  });
+
+  test("builds extended Better Notify Discord embeds", () => {
     const body = buildDiscordPayload(
       {
         discordEmbedTitle: "{{monitor.name}} alert",
+        discordEmbedDescription: "{{monitor.name}} report {{responseTime}}",
         discordEmbedUrl: "{{monitor.url}}",
         discordEmbedColor: "#336699",
         discordEmbedAuthorName: "{{monitor.name}} author",
@@ -71,21 +84,15 @@ describe("buildDiscordPayload", () => {
         discordEmbedFooterText: "{{responseTime}}",
         discordEmbedFooterIconUrl: "https://example.com/footer.png",
         discordEmbedTimestamp: false,
-        discordAllowUserMentions: true,
-        discordAllowRoleMentions: true,
-        discordSuppressEmbeds: true,
-        discordSuppressNotifications: true,
       },
       payload,
     );
 
     expect(body).toMatchObject({
-      allowed_mentions: { parse: ["users", "roles"] },
-      flags: 4100,
       embeds: [
         {
           title: "API alert",
-          description: expect.stringContaining("[DOWN] API"),
+          description: "API report 123ms",
           url: "https://example.com/health",
           color: 0x336699,
           author: {
@@ -106,11 +113,34 @@ describe("buildDiscordPayload", () => {
 
     expect(body.embeds[0].timestamp).toBeUndefined();
   });
+  test("uses down and recovery template overrides for Discord content and embeds", () => {
+    const downBody = buildDiscordPayload(
+      {
+        discordContent: "standard content",
+        downTemplate: "down content {{monitor.name}}",
+        upTemplate: "up content {{monitor.name}}",
+        discordEmbedDescription: "standard embed",
+        discordDownEmbedDescription: "down embed {{monitor.name}}",
+        discordUpEmbedDescription: "up embed {{monitor.name}}",
+      },
+      payload,
+    );
 
-  test("always sends the message template as an embed description", () => {
-    const body = buildDiscordPayload({}, payload);
+    const recoveryBody = buildDiscordPayload(
+      {
+        discordContent: "standard content",
+        downTemplate: "down content {{monitor.name}}",
+        upTemplate: "up content {{monitor.name}}",
+        discordEmbedDescription: "standard embed",
+        discordDownEmbedDescription: "down embed {{monitor.name}}",
+        discordUpEmbedDescription: "up embed {{monitor.name}}",
+      },
+      { ...payload, result: { ...payload.result, isUp: true, status: "up" } },
+    );
 
-    expect(body.content).toBeUndefined();
-    expect(body.embeds).toMatchObject([{ description: expect.stringContaining("[DOWN] API") }]);
+    expect(downBody.body).toBe("down content API");
+    expect(downBody.embeds).toMatchObject([{ description: "down embed API" }]);
+    expect(recoveryBody.body).toBe("up content API");
+    expect(recoveryBody.embeds).toMatchObject([{ description: "up embed API" }]);
   });
 });

@@ -52,14 +52,22 @@ const StatusInfoSchema = z.object({
   canCreateIncident: z.boolean(),
 });
 
-const NotificationChannelSchema = z.object({
-  id: z.number().int(),
-  type: z.string(),
-  name: z.string(),
-  webhookUrl: z.string(),
+const NotificationTemplateFieldsSchema = z.object({
   template: z.string().nullable(),
   downTemplate: z.string().nullable(),
   upTemplate: z.string().nullable(),
+});
+
+const NotificationChannelBaseSchema = NotificationTemplateFieldsSchema.extend({
+  id: z.number().int(),
+  name: z.string(),
+  active: z.boolean(),
+  createdAt: z.string(),
+});
+
+const NotificationChannelDiscordSchema = NotificationChannelBaseSchema.extend({
+  type: z.literal("discord"),
+  webhookUrl: z.string().nullable(),
   discordContent: z.string().nullable(),
   discordUsername: z.string().nullable(),
   discordAvatarUrl: z.string().nullable(),
@@ -67,6 +75,8 @@ const NotificationChannelSchema = z.object({
   discordEmbedEnabled: z.boolean().nullable(),
   discordEmbedTitle: z.string().nullable(),
   discordEmbedDescription: z.string().nullable(),
+  discordDownEmbedDescription: z.string().nullable(),
+  discordUpEmbedDescription: z.string().nullable(),
   discordEmbedUrl: z.string().nullable(),
   discordEmbedColor: z.string().nullable(),
   discordEmbedAuthorName: z.string().nullable(),
@@ -84,9 +94,141 @@ const NotificationChannelSchema = z.object({
   discordSuppressNotifications: z.boolean().nullable(),
   discordThreadName: z.string().nullable(),
   discordAppliedTags: z.string().nullable(),
-  active: z.boolean(),
-  createdAt: z.string(),
 });
+
+const NotificationChannelSlackSchema = NotificationChannelBaseSchema.extend({
+  type: z.literal("slack"),
+  slackMode: z.enum(["webhook", "bot"]),
+  webhookUrl: z.string().nullable(),
+  slackBotToken: z.string().nullable(),
+  slackChannel: z.string().nullable(),
+});
+
+const NotificationChannelTelegramSchema = NotificationChannelBaseSchema.extend({
+  type: z.literal("telegram"),
+  telegramBotToken: z.string().nullable(),
+  telegramChatId: z.string().nullable(),
+});
+
+const NotificationChannelZapierSchema = NotificationChannelBaseSchema.extend({
+  type: z.literal("zapier"),
+  webhookUrl: z.string().nullable(),
+});
+
+const NotificationChannelTwilioSchema = NotificationChannelBaseSchema.extend({
+  type: z.literal("twilio"),
+  twilioAccountSid: z.string().nullable(),
+  twilioAuthToken: z.string().nullable(),
+  twilioFrom: z.string().nullable(),
+  twilioTo: z.string().nullable(),
+});
+
+const NotificationChannelSchema = z.discriminatedUnion("type", [
+  NotificationChannelDiscordSchema,
+  NotificationChannelSlackSchema,
+  NotificationChannelTelegramSchema,
+  NotificationChannelZapierSchema,
+  NotificationChannelTwilioSchema,
+]);
+
+const NotificationTemplateInputSchema = z.object({
+  template: z.string().nullable().optional(),
+  downTemplate: z.string().nullable().optional(),
+  upTemplate: z.string().nullable().optional(),
+});
+
+const NotificationChannelCreateBaseSchema = NotificationTemplateInputSchema.extend({
+  name: z.string().min(1).max(100),
+});
+
+const NotificationChannelDiscordInputSchema = NotificationChannelCreateBaseSchema.extend({
+  type: z.literal("discord"),
+  webhookUrl: z.string().min(1),
+  discordContent: z.string().nullable().optional(),
+  discordUsername: z.string().nullable().optional(),
+  discordAvatarUrl: z.string().nullable().optional(),
+  discordTts: z.boolean().nullable().optional(),
+  discordEmbedEnabled: z.boolean().nullable().optional(),
+  discordEmbedTitle: z.string().nullable().optional(),
+  discordEmbedDescription: z.string().nullable().optional(),
+  discordDownEmbedDescription: z.string().nullable().optional(),
+  discordUpEmbedDescription: z.string().nullable().optional(),
+  discordEmbedUrl: z.string().nullable().optional(),
+  discordEmbedColor: z.string().nullable().optional(),
+  discordEmbedAuthorName: z.string().nullable().optional(),
+  discordEmbedAuthorUrl: z.string().nullable().optional(),
+  discordEmbedAuthorIconUrl: z.string().nullable().optional(),
+  discordEmbedThumbnailUrl: z.string().nullable().optional(),
+  discordEmbedImageUrl: z.string().nullable().optional(),
+  discordEmbedFooterText: z.string().nullable().optional(),
+  discordEmbedFooterIconUrl: z.string().nullable().optional(),
+  discordEmbedTimestamp: z.boolean().nullable().optional(),
+  discordAllowUserMentions: z.boolean().nullable().optional(),
+  discordAllowRoleMentions: z.boolean().nullable().optional(),
+  discordAllowEveryoneMentions: z.boolean().nullable().optional(),
+  discordSuppressEmbeds: z.boolean().nullable().optional(),
+  discordSuppressNotifications: z.boolean().nullable().optional(),
+  discordThreadName: z.string().nullable().optional(),
+  discordAppliedTags: z.string().nullable().optional(),
+});
+
+const NotificationChannelSlackInputSchema = NotificationChannelCreateBaseSchema.extend({
+  type: z.literal("slack"),
+  slackMode: z.enum(["webhook", "bot"]),
+  webhookUrl: z.string().optional(),
+  slackBotToken: z.string().nullable().optional(),
+  slackChannel: z.string().nullable().optional(),
+});
+
+const NotificationChannelTelegramInputSchema = NotificationChannelCreateBaseSchema.extend({
+  type: z.literal("telegram"),
+  telegramBotToken: z.string().min(1),
+  telegramChatId: z.string().min(1),
+});
+
+const NotificationChannelZapierInputSchema = NotificationChannelCreateBaseSchema.extend({
+  type: z.literal("zapier"),
+  webhookUrl: z.string().min(1),
+});
+
+const NotificationChannelTwilioInputSchema = NotificationChannelCreateBaseSchema.extend({
+  type: z.literal("twilio"),
+  twilioAccountSid: z.string().min(1),
+  twilioAuthToken: z.string().min(1),
+  twilioFrom: z.string().min(1),
+  twilioTo: z.string().min(1),
+});
+
+const NotificationChannelCreateInputSchema = z.discriminatedUnion("type", [
+  NotificationChannelDiscordInputSchema,
+  NotificationChannelSlackInputSchema,
+  NotificationChannelTelegramInputSchema,
+  NotificationChannelZapierInputSchema,
+  NotificationChannelTwilioInputSchema,
+]);
+
+const NotificationChannelUpdateInputSchema = z.discriminatedUnion("type", [
+  NotificationChannelDiscordInputSchema.extend({
+    id: z.coerce.number().int(),
+    active: z.boolean().optional(),
+  }),
+  NotificationChannelSlackInputSchema.extend({
+    id: z.coerce.number().int(),
+    active: z.boolean().optional(),
+  }),
+  NotificationChannelTelegramInputSchema.extend({
+    id: z.coerce.number().int(),
+    active: z.boolean().optional(),
+  }),
+  NotificationChannelZapierInputSchema.extend({
+    id: z.coerce.number().int(),
+    active: z.boolean().optional(),
+  }),
+  NotificationChannelTwilioInputSchema.extend({
+    id: z.coerce.number().int(),
+    active: z.boolean().optional(),
+  }),
+]);
 
 const MonitorWithStatusSchema = MonitorSchema.extend({
   lastCheck: CheckResultSchema.nullable(),
@@ -155,7 +297,7 @@ export const contract = {
         z.object({
           name: z.string().min(1).max(100),
           displayName: z.string().min(1).max(100).nullable().optional(), // 公開時に表示する名前
-          url: z.string().url(),
+          url: z.url(),
           method: z.enum(["GET", "POST"]),
           headers: z.string().nullable().optional(),
           body: z.string().nullable().optional(),
@@ -178,8 +320,8 @@ export const contract = {
         z.object({
           id: z.coerce.number().int(),
           name: z.string().min(1).max(100).optional(),
-          displayName: z.string().min(1).max(100).nullable().optional(), // 公開時に表示する名前
-          url: z.string().url().optional(),
+          displayName: z.string().min(1).max(100).nullable().optional(),
+          url: z.url().optional(),
           method: z.enum(["GET", "POST"]).optional(),
           headers: z.string().nullable().optional(),
           body: z.string().nullable().optional(),
@@ -244,7 +386,7 @@ export const contract = {
           monitors: z.array(
             z.object({
               name: z.string().min(1).max(100),
-              url: z.string().url(),
+              url: z.url(),
               method: z.enum(["GET", "POST"]),
               headers: z.string().nullable().optional(),
               body: z.string().nullable().optional(),
@@ -319,8 +461,8 @@ export const contract = {
         z.object({
           title: z.string().min(1).max(100),
           message: z.string().max(500).nullable().optional(),
-          startAt: z.string().datetime(),
-          endAt: z.string().datetime(),
+          startAt: z.iso.datetime(),
+          endAt: z.iso.datetime(),
           monitorIds: z.array(z.coerce.number().int()).optional(),
         }),
       )
@@ -340,8 +482,8 @@ export const contract = {
           id: z.coerce.number().int(),
           title: z.string().min(1).max(100),
           message: z.string().max(500).nullable().optional(),
-          startAt: z.string().datetime(),
-          endAt: z.string().datetime(),
+          startAt: z.iso.datetime(),
+          endAt: z.iso.datetime(),
           monitorIds: z.array(z.coerce.number().int()).optional(),
         }),
       )
@@ -423,46 +565,14 @@ export const contract = {
       .route(
         withBearerAuth(
           "Create a notification channel",
-          "Creates a Slack or Discord webhook destination.",
+          "Creates a notification destination.",
           "/notification-channels",
           "POST",
           ["Notification"],
         ),
       )
-      .input(
-        z.object({
-          type: z.enum(["discord", "slack"]),
-          name: z.string().min(1).max(100),
-          webhookUrl: z.string().min(1),
-          template: z.string().nullable().optional(),
-          downTemplate: z.string().nullable().optional(),
-          upTemplate: z.string().nullable().optional(),
-          discordContent: z.string().nullable().optional(),
-          discordUsername: z.string().nullable().optional(),
-          discordAvatarUrl: z.string().nullable().optional(),
-          discordTts: z.boolean().nullable().optional(),
-          discordEmbedEnabled: z.boolean().nullable().optional(),
-          discordEmbedTitle: z.string().nullable().optional(),
-          discordEmbedDescription: z.string().nullable().optional(),
-          discordEmbedUrl: z.string().nullable().optional(),
-          discordEmbedColor: z.string().nullable().optional(),
-          discordEmbedAuthorName: z.string().nullable().optional(),
-          discordEmbedAuthorUrl: z.string().nullable().optional(),
-          discordEmbedAuthorIconUrl: z.string().nullable().optional(),
-          discordEmbedThumbnailUrl: z.string().nullable().optional(),
-          discordEmbedImageUrl: z.string().nullable().optional(),
-          discordEmbedFooterText: z.string().nullable().optional(),
-          discordEmbedFooterIconUrl: z.string().nullable().optional(),
-          discordEmbedTimestamp: z.boolean().nullable().optional(),
-          discordAllowUserMentions: z.boolean().nullable().optional(),
-          discordAllowRoleMentions: z.boolean().nullable().optional(),
-          discordAllowEveryoneMentions: z.boolean().nullable().optional(),
-          discordSuppressEmbeds: z.boolean().nullable().optional(),
-          discordSuppressNotifications: z.boolean().nullable().optional(),
-          discordThreadName: z.string().nullable().optional(),
-          discordAppliedTags: z.string().nullable().optional(),
-        }),
-      )
+      .input(NotificationChannelCreateInputSchema)
+
       .output(NotificationChannelSchema),
     update: oc
       .route(
@@ -474,41 +584,8 @@ export const contract = {
           ["Notification"],
         ),
       )
-      .input(
-        z.object({
-          id: z.coerce.number().int(),
-          name: z.string().min(1).max(100).optional(),
-          webhookUrl: z.string().min(1).optional(),
-          template: z.string().nullable().optional(),
-          downTemplate: z.string().nullable().optional(),
-          upTemplate: z.string().nullable().optional(),
-          discordContent: z.string().nullable().optional(),
-          discordUsername: z.string().nullable().optional(),
-          discordAvatarUrl: z.string().nullable().optional(),
-          discordTts: z.boolean().nullable().optional(),
-          discordEmbedEnabled: z.boolean().nullable().optional(),
-          discordEmbedTitle: z.string().nullable().optional(),
-          discordEmbedDescription: z.string().nullable().optional(),
-          discordEmbedUrl: z.string().nullable().optional(),
-          discordEmbedColor: z.string().nullable().optional(),
-          discordEmbedAuthorName: z.string().nullable().optional(),
-          discordEmbedAuthorUrl: z.string().nullable().optional(),
-          discordEmbedAuthorIconUrl: z.string().nullable().optional(),
-          discordEmbedThumbnailUrl: z.string().nullable().optional(),
-          discordEmbedImageUrl: z.string().nullable().optional(),
-          discordEmbedFooterText: z.string().nullable().optional(),
-          discordEmbedFooterIconUrl: z.string().nullable().optional(),
-          discordEmbedTimestamp: z.boolean().nullable().optional(),
-          discordAllowUserMentions: z.boolean().nullable().optional(),
-          discordAllowRoleMentions: z.boolean().nullable().optional(),
-          discordAllowEveryoneMentions: z.boolean().nullable().optional(),
-          discordSuppressEmbeds: z.boolean().nullable().optional(),
-          discordSuppressNotifications: z.boolean().nullable().optional(),
-          discordThreadName: z.string().nullable().optional(),
-          discordAppliedTags: z.string().nullable().optional(),
-          active: z.boolean().optional(),
-        }),
-      )
+      .input(NotificationChannelUpdateInputSchema)
+
       .output(z.object({ status: z.literal("OK") })),
     delete: oc
       .route(
