@@ -1,0 +1,51 @@
+PRAGMA foreign_keys=OFF;--> statement-breakpoint
+CREATE TABLE `__new_notification_channels` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`type` text NOT NULL,
+	`name` text NOT NULL,
+	`webhook_url` text DEFAULT NULL,
+	`slack_bot_token` text DEFAULT NULL,
+	`slack_channel` text DEFAULT NULL,
+	`telegram_bot_token` text DEFAULT NULL,
+	`telegram_chat_id` text DEFAULT NULL,
+	`twilio_account_sid` text DEFAULT NULL,
+	`twilio_auth_token` text DEFAULT NULL,
+	`twilio_from` text DEFAULT NULL,
+	`twilio_to` text DEFAULT NULL,
+	`template` text DEFAULT NULL,
+	`down_template` text DEFAULT NULL,
+	`up_template` text DEFAULT NULL,
+	`discord_content` text DEFAULT NULL,
+	`discord_username` text DEFAULT NULL,
+	`discord_avatar_url` text DEFAULT NULL,
+	`discord_tts` integer DEFAULT NULL,
+	`discord_embed_enabled` integer DEFAULT NULL,
+	`discord_embed_title` text DEFAULT NULL,
+	`discord_embed_description` text DEFAULT NULL,
+	`discord_down_embed_description` text DEFAULT NULL,
+	`discord_up_embed_description` text DEFAULT NULL,
+	`discord_embed_url` text DEFAULT NULL,
+	`discord_embed_color` text DEFAULT NULL,
+	`discord_embed_author_name` text DEFAULT NULL,
+	`discord_embed_author_url` text DEFAULT NULL,
+	`discord_embed_author_icon_url` text DEFAULT NULL,
+	`discord_embed_thumbnail_url` text DEFAULT NULL,
+	`discord_embed_image_url` text DEFAULT NULL,
+	`discord_embed_footer_text` text DEFAULT NULL,
+	`discord_embed_footer_icon_url` text DEFAULT NULL,
+	`discord_embed_timestamp` integer DEFAULT NULL,
+	`discord_allow_user_mentions` integer DEFAULT NULL,
+	`discord_allow_role_mentions` integer DEFAULT NULL,
+	`discord_allow_everyone_mentions` integer DEFAULT NULL,
+	`discord_suppress_embeds` integer DEFAULT NULL,
+	`discord_suppress_notifications` integer DEFAULT NULL,
+	`discord_thread_name` text DEFAULT NULL,
+	`discord_applied_tags` text DEFAULT NULL,
+	`active` integer DEFAULT true NOT NULL,
+	`created_at` text NOT NULL
+);
+--> statement-breakpoint
+INSERT INTO `__new_notification_channels`("id", "type", "name", "webhook_url", "slack_bot_token", "slack_channel", "telegram_bot_token", "telegram_chat_id", "twilio_account_sid", "twilio_auth_token", "twilio_from", "twilio_to", "template", "down_template", "up_template", "discord_content", "discord_username", "discord_avatar_url", "discord_tts", "discord_embed_enabled", "discord_embed_title", "discord_embed_description", "discord_down_embed_description", "discord_up_embed_description", "discord_embed_url", "discord_embed_color", "discord_embed_author_name", "discord_embed_author_url", "discord_embed_author_icon_url", "discord_embed_thumbnail_url", "discord_embed_image_url", "discord_embed_footer_text", "discord_embed_footer_icon_url", "discord_embed_timestamp", "discord_allow_user_mentions", "discord_allow_role_mentions", "discord_allow_everyone_mentions", "discord_suppress_embeds", "discord_suppress_notifications", "discord_thread_name", "discord_applied_tags", "active", "created_at") SELECT "id", "type", "name", "webhook_url", "slack_bot_token", "slack_channel", "telegram_bot_token", "telegram_chat_id", "twilio_account_sid", "twilio_auth_token", "twilio_from", "twilio_to", "template", "down_template", "up_template", "discord_content", "discord_username", "discord_avatar_url", "discord_tts", "discord_embed_enabled", "discord_embed_title", "discord_embed_description", "discord_down_embed_description", "discord_up_embed_description", "discord_embed_url", "discord_embed_color", "discord_embed_author_name", "discord_embed_author_url", "discord_embed_author_icon_url", "discord_embed_thumbnail_url", "discord_embed_image_url", "discord_embed_footer_text", "discord_embed_footer_icon_url", "discord_embed_timestamp", "discord_allow_user_mentions", "discord_allow_role_mentions", "discord_allow_everyone_mentions", "discord_suppress_embeds", "discord_suppress_notifications", "discord_thread_name", "discord_applied_tags", "active", "created_at" FROM `notification_channels`;--> statement-breakpoint
+DROP TABLE `notification_channels`;--> statement-breakpoint
+ALTER TABLE `__new_notification_channels` RENAME TO `notification_channels`;--> statement-breakpoint
+PRAGMA foreign_keys=ON;

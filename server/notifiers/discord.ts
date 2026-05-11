@@ -1,5 +1,5 @@
 import { discordTransport, type DiscordEmbed, type RenderedDiscord } from "@betternotify/discord";
-import { renderTemplate, resolveTemplate, type NotificationTemplates } from "./template";
+import { renderTemplate, type NotificationTemplates } from "./template";
 import type { Notifier, NotifyPayload } from "./types";
 
 type DiscordWebhookConfig = NotificationTemplates & {
@@ -9,6 +9,9 @@ type DiscordWebhookConfig = NotificationTemplates & {
   discordTts?: boolean | null;
   discordEmbedEnabled?: boolean | null;
   discordEmbedTitle?: string | null;
+  discordEmbedDescription?: string | null;
+  discordDownEmbedDescription?: string | null;
+  discordUpEmbedDescription?: string | null;
   discordEmbedUrl?: string | null;
   discordEmbedColor?: string | null;
   discordEmbedAuthorName?: string | null;
@@ -44,15 +47,44 @@ function compactObject<T extends Record<string, unknown>>(object: T) {
   return Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
 }
 
+function buildDefaultReport(payload: NotifyPayload) {
+  const title = payload.result.isUp ? "復旧した時のレポート" : "ダウンした時のレポート";
+  const statusLabel = payload.result.isUp ? "復旧" : "ダウン";
+  const statusCode = payload.result.statusCode?.toString() ?? "N/A";
+  const responseTime = payload.result.responseTime ? `${payload.result.responseTime}ms` : "N/A";
+  const error = payload.result.errorMessage ? `\nエラー: ${payload.result.errorMessage}` : "";
+
+  return {
+    title,
+    description: [
+      `対象: ${payload.monitor.name}`,
+      `URL: ${payload.monitor.url}`,
+      `状態: ${statusLabel}`,
+      `HTTPステータス: ${statusCode}`,
+      `応答時間: ${responseTime}${error}`,
+    ].join("\n"),
+  };
+}
+
+function resolveDiscordEmbedTemplate(config: DiscordWebhookConfig, payload: NotifyPayload) {
+  if (payload.result.isUp) {
+    return config.discordUpEmbedDescription || config.discordEmbedDescription;
+  }
+
+  return config.discordDownEmbedDescription || config.discordEmbedDescription;
+}
+
 function buildEmbed(
   config: DiscordWebhookConfig,
   payload: NotifyPayload,
   defaultMessage: string,
 ): DiscordEmbed {
   const defaultColor = payload.result.isUp ? 0x00ff00 : 0xff0000;
+  const defaultReport = buildDefaultReport(payload);
   return compactObject({
-    title: renderOptional(config.discordEmbedTitle, payload),
-    description: defaultMessage,
+    title: renderOptional(config.discordEmbedTitle, payload) ?? defaultReport.title,
+    description:
+      renderOptional(resolveDiscordEmbedTemplate(config, payload), payload) ?? defaultMessage,
     url: renderOptional(config.discordEmbedUrl, payload),
     color: parseColor(config.discordEmbedColor, defaultColor),
     timestamp: config.discordEmbedTimestamp === false ? undefined : new Date().toISOString(),
@@ -82,10 +114,15 @@ export function buildDiscordPayload(
   config: DiscordWebhookConfig,
   payload: NotifyPayload,
 ): RenderedDiscord {
-  const message = renderTemplate(resolveTemplate(config, payload), payload);
-  const content = renderOptional(config.discordContent, payload);
+  const report = buildDefaultReport(payload);
+  const contentTemplate = payload.result.isUp
+    ? config.upTemplate || config.discordContent
+    : config.downTemplate || config.discordContent;
+  const message =
+    renderOptional(resolveDiscordEmbedTemplate(config, payload), payload) ?? report.description;
+  const content = renderOptional(contentTemplate, payload);
   const discordPayload: RenderedDiscord = {
-    body: content ?? message,
+    body: content ?? "",
     username: renderOptional(config.discordUsername, payload),
     avatarUrl: renderOptional(config.discordAvatarUrl, payload),
     embeds:

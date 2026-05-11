@@ -30,10 +30,11 @@ describe("buildDiscordPayload", () => {
   test("builds the default Better Notify Discord payload", () => {
     const body = buildDiscordPayload({}, payload);
 
-    expect(body.body).toContain("[DOWN] API");
+    expect(body.body).toBe("");
     expect(body.embeds).toMatchObject([
       {
-        description: expect.stringContaining("[DOWN] API"),
+        title: "ダウンした時のレポート",
+        description: expect.stringContaining("対象: API"),
         color: 0xff0000,
       },
     ]);
@@ -51,7 +52,7 @@ describe("buildDiscordPayload", () => {
     expect(body).toMatchObject({
       username: "Healthcheck",
       avatarUrl: "https://example.com/avatar.png",
-      embeds: [{ description: expect.stringContaining("[DOWN] API") }],
+      embeds: [{ title: "ダウンした時のレポート" }],
     });
   });
 
@@ -72,6 +73,7 @@ describe("buildDiscordPayload", () => {
     const body = buildDiscordPayload(
       {
         discordEmbedTitle: "{{monitor.name}} alert",
+        discordEmbedDescription: "{{monitor.name}} report {{responseTime}}",
         discordEmbedUrl: "{{monitor.url}}",
         discordEmbedColor: "#336699",
         discordEmbedAuthorName: "{{monitor.name}} author",
@@ -90,7 +92,7 @@ describe("buildDiscordPayload", () => {
       embeds: [
         {
           title: "API alert",
-          description: expect.stringContaining("[DOWN] API"),
+          description: "API report 123ms",
           url: "https://example.com/health",
           color: 0x336699,
           author: {
@@ -110,5 +112,35 @@ describe("buildDiscordPayload", () => {
     }
 
     expect(body.embeds[0].timestamp).toBeUndefined();
+  });
+  test("uses down and recovery template overrides for Discord content and embeds", () => {
+    const downBody = buildDiscordPayload(
+      {
+        discordContent: "standard content",
+        downTemplate: "down content {{monitor.name}}",
+        upTemplate: "up content {{monitor.name}}",
+        discordEmbedDescription: "standard embed",
+        discordDownEmbedDescription: "down embed {{monitor.name}}",
+        discordUpEmbedDescription: "up embed {{monitor.name}}",
+      },
+      payload,
+    );
+
+    const recoveryBody = buildDiscordPayload(
+      {
+        discordContent: "standard content",
+        downTemplate: "down content {{monitor.name}}",
+        upTemplate: "up content {{monitor.name}}",
+        discordEmbedDescription: "standard embed",
+        discordDownEmbedDescription: "down embed {{monitor.name}}",
+        discordUpEmbedDescription: "up embed {{monitor.name}}",
+      },
+      { ...payload, result: { ...payload.result, isUp: true, status: "up" } },
+    );
+
+    expect(downBody.body).toBe("down content API");
+    expect(downBody.embeds).toMatchObject([{ description: "down embed API" }]);
+    expect(recoveryBody.body).toBe("up content API");
+    expect(recoveryBody.embeds).toMatchObject([{ description: "up embed API" }]);
   });
 });
