@@ -543,7 +543,7 @@ interface Channel {
   id: number;
   type: string;
   name: string;
-  webhookUrl: string;
+  webhookUrl?: string | null;
   template: string | null;
   active: boolean;
   createdAt: string;

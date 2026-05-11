@@ -9,8 +9,8 @@
     <div class="channel-list">
       <label v-for="ch in allChannels" :key="ch.id" class="channel-option">
         <ElCheckbox :model-value="selectedIds.has(ch.id)" @change="toggle(ch.id)" />
-        <ElTag :type="ch.type === 'discord' ? 'primary' : 'info'" effect="light" round size="small">
-          {{ ch.type }}
+        <ElTag :type="channelTagType(ch.type)" effect="light" round size="small">
+          {{ channelLabel(ch.type) }}
         </ElTag>
         <span class="channel-name">{{ ch.name }}</span>
       </label>
@@ -23,7 +23,7 @@ interface Channel {
   id: number;
   type: string;
   name: string;
-  webhookUrl: string;
+  webhookUrl?: string | null;
   template: string | null;
   active: boolean;
   createdAt: string;
@@ -35,6 +35,25 @@ const client = useRpcClient();
 
 const allChannels = ref<Channel[]>([]);
 const selectedIds = ref(new Set<number>());
+
+function channelLabel(type: string) {
+  const labels: Record<string, string> = {
+    discord: "Discord",
+    slack: "Slack",
+    telegram: "Telegram",
+    zapier: "Zapier",
+    twilio: "Twilio",
+  };
+  return labels[type] ?? type;
+}
+
+function channelTagType(type: string) {
+  if (type === "discord") return "primary";
+  if (type === "telegram") return "success";
+  if (type === "twilio") return "warning";
+  if (type === "zapier") return "danger";
+  return "info";
+}
 
 watch(
   () => props.channelIds,

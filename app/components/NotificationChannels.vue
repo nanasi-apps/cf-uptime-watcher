@@ -25,13 +25,8 @@
           <span class="sidebar-dot" :class="ch.active ? 'dot-active' : 'dot-inactive'"></span>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <ElTag
-                :type="ch.type === 'discord' ? 'primary' : 'info'"
-                effect="light"
-                round
-                size="small"
-              >
-                {{ ch.type }}
+              <ElTag :type="channelTagType(ch.type)" effect="light" round size="small">
+                {{ channelLabel(ch.type) }}
               </ElTag>
               <span class="truncate text-sm font-medium">{{ ch.name }}</span>
             </div>
@@ -104,7 +99,7 @@
                 required
             /></ElFormItem>
 
-            <ElFormItem v-if="paneMode === 'create'" :label="t('notifications.type')"
+            <ElFormItem :label="t('notifications.type')" required
               ><ElSelect v-model="form.type" class="w-full"
                 ><ElOption
                   v-for="option in typeOptions"
@@ -112,24 +107,67 @@
                   :label="option.label"
                   :value="option.value" /></ElSelect
             ></ElFormItem>
-            <div v-else class="flex items-center gap-2 rounded-lg app-card-muted p-3">
-              <span class="text-sm app-muted">{{ t("notifications.type") }}</span>
-              <ElTag
-                :type="form.type === 'discord' ? 'primary' : 'info'"
-                effect="light"
-                round
-                size="small"
-              >
-                {{ form.type }}
-              </ElTag>
-            </div>
 
-            <ElFormItem :label="t('notifications.webhookUrl')" required
+            <template v-if="form.type === 'slack'">
+              <ElFormItem :label="t('notifications.slackMode')" required>
+                <ElSegmented v-model="form.slackMode" :options="slackModeOptions" />
+              </ElFormItem>
+            </template>
+
+            <ElFormItem
+              v-if="usesWebhookUrl"
+              :label="t('notifications.webhookUrl')"
+              :required="requiresWebhookUrl"
               ><ElInput
                 v-model="form.webhookUrl"
-                placeholder="https://discord.com/api/webhooks/..."
-                required
+                :placeholder="webhookPlaceholder"
+                :required="requiresWebhookUrl"
             /></ElFormItem>
+
+            <template v-if="form.type === 'slack'">
+              <ElFormItem
+                v-if="form.slackMode === 'bot'"
+                :label="t('notifications.slackBotToken')"
+                required
+              >
+                <ElInput v-model="form.slackBotToken" type="password" show-password required />
+              </ElFormItem>
+              <ElFormItem
+                v-if="form.slackMode === 'bot'"
+                :label="t('notifications.slackChannel')"
+                required
+              >
+                <ElInput
+                  v-model="form.slackChannel"
+                  placeholder="#alerts または C0123456789"
+                  required
+                />
+              </ElFormItem>
+            </template>
+
+            <template v-if="form.type === 'telegram'">
+              <ElFormItem :label="t('notifications.telegramBotToken')" required>
+                <ElInput v-model="form.telegramBotToken" type="password" show-password required />
+              </ElFormItem>
+              <ElFormItem :label="t('notifications.telegramChatId')" required>
+                <ElInput v-model="form.telegramChatId" required />
+              </ElFormItem>
+            </template>
+
+            <template v-if="form.type === 'twilio'">
+              <ElFormItem :label="t('notifications.twilioAccountSid')" required>
+                <ElInput v-model="form.twilioAccountSid" required />
+              </ElFormItem>
+              <ElFormItem :label="t('notifications.twilioAuthToken')" required>
+                <ElInput v-model="form.twilioAuthToken" type="password" show-password required />
+              </ElFormItem>
+              <ElFormItem :label="t('notifications.twilioFrom')" required>
+                <ElInput v-model="form.twilioFrom" placeholder="+15551234567" required />
+              </ElFormItem>
+              <ElFormItem :label="t('notifications.twilioTo')" required>
+                <ElInput v-model="form.twilioTo" placeholder="+15557654321" required />
+              </ElFormItem>
+            </template>
 
             <ElCollapse>
               <ElCollapseItem :title="t('notifications.messageTemplate')">
@@ -277,35 +315,45 @@
 import { ElMessage, ElMessageBox } from "element-plus";
 
 type PaneMode = "idle" | "create" | "edit";
-type ChannelType = "discord" | "slack";
+type ChannelType = "discord" | "slack" | "telegram" | "zapier" | "twilio";
+type SlackMode = "webhook" | "bot";
 
 interface Channel {
   id: number;
-  type: string;
+  type: ChannelType;
   name: string;
-  webhookUrl: string;
+  webhookUrl?: string | null;
+  slackMode?: SlackMode;
+  slackBotToken?: string | null;
+  slackChannel?: string | null;
+  telegramBotToken?: string | null;
+  telegramChatId?: string | null;
+  twilioAccountSid?: string | null;
+  twilioAuthToken?: string | null;
+  twilioFrom?: string | null;
+  twilioTo?: string | null;
   template: string | null;
   downTemplate: string | null;
   upTemplate: string | null;
-  discordUsername: string | null;
-  discordAvatarUrl: string | null;
-  discordTts: boolean | null;
-  discordEmbedTitle: string | null;
-  discordEmbedUrl: string | null;
-  discordEmbedColor: string | null;
-  discordEmbedAuthorName: string | null;
-  discordEmbedAuthorUrl: string | null;
-  discordEmbedAuthorIconUrl: string | null;
-  discordEmbedThumbnailUrl: string | null;
-  discordEmbedImageUrl: string | null;
-  discordEmbedFooterText: string | null;
-  discordEmbedFooterIconUrl: string | null;
-  discordEmbedTimestamp: boolean | null;
-  discordAllowUserMentions: boolean | null;
-  discordAllowRoleMentions: boolean | null;
-  discordAllowEveryoneMentions: boolean | null;
-  discordSuppressEmbeds: boolean | null;
-  discordSuppressNotifications: boolean | null;
+  discordUsername?: string | null;
+  discordAvatarUrl?: string | null;
+  discordTts?: boolean | null;
+  discordEmbedTitle?: string | null;
+  discordEmbedUrl?: string | null;
+  discordEmbedColor?: string | null;
+  discordEmbedAuthorName?: string | null;
+  discordEmbedAuthorUrl?: string | null;
+  discordEmbedAuthorIconUrl?: string | null;
+  discordEmbedThumbnailUrl?: string | null;
+  discordEmbedImageUrl?: string | null;
+  discordEmbedFooterText?: string | null;
+  discordEmbedFooterIconUrl?: string | null;
+  discordEmbedTimestamp?: boolean | null;
+  discordAllowUserMentions?: boolean | null;
+  discordAllowRoleMentions?: boolean | null;
+  discordAllowEveryoneMentions?: boolean | null;
+  discordSuppressEmbeds?: boolean | null;
+  discordSuppressNotifications?: boolean | null;
   active: boolean;
   createdAt: string;
 }
@@ -314,6 +362,15 @@ interface ChannelForm {
   type: ChannelType;
   name: string;
   webhookUrl: string;
+  slackMode: SlackMode;
+  slackBotToken: string;
+  slackChannel: string;
+  telegramBotToken: string;
+  telegramChatId: string;
+  twilioAccountSid: string;
+  twilioAuthToken: string;
+  twilioFrom: string;
+  twilioTo: string;
   downTemplate: string;
   upTemplate: string;
   discordUsername: string;
@@ -355,7 +412,33 @@ const form = ref<ChannelForm>(blankForm());
 const typeOptions = [
   { value: "discord", label: "Discord" },
   { value: "slack", label: "Slack" },
-];
+  { value: "telegram", label: "Telegram" },
+  { value: "zapier", label: "Zapier" },
+  { value: "twilio", label: "Twilio" },
+] satisfies { value: ChannelType; label: string }[];
+
+const usesWebhookUrl = computed(
+  () =>
+    form.value.type === "discord" ||
+    form.value.type === "zapier" ||
+    (form.value.type === "slack" && form.value.slackMode === "webhook"),
+);
+const requiresWebhookUrl = computed(
+  () =>
+    form.value.type === "discord" ||
+    form.value.type === "zapier" ||
+    (form.value.type === "slack" && form.value.slackMode === "webhook"),
+);
+const webhookPlaceholder = computed(() => {
+  if (form.value.type === "discord") return "https://discord.com/api/webhooks/...";
+  if (form.value.type === "zapier") return "https://hooks.zapier.com/hooks/catch/...";
+  return "https://hooks.slack.com/services/...";
+});
+
+const slackModeOptions = computed(() => [
+  { label: t("notifications.slackModeWebhook"), value: "webhook" },
+  { label: t("notifications.slackModeBot"), value: "bot" },
+]);
 
 const selectedChannel = computed(
   () => channels.value.find((channel) => channel.id === selectedChannelId.value) ?? null,
@@ -370,6 +453,15 @@ function blankForm(): ChannelForm {
     type: "discord",
     name: "",
     webhookUrl: "",
+    slackMode: "webhook",
+    slackBotToken: "",
+    slackChannel: "",
+    telegramBotToken: "",
+    telegramChatId: "",
+    twilioAccountSid: "",
+    twilioAuthToken: "",
+    twilioFrom: "",
+    twilioTo: "",
     downTemplate: "",
     upTemplate: "",
     discordUsername: "",
@@ -397,9 +489,18 @@ function blankForm(): ChannelForm {
 
 function formFromChannel(channel: Channel): ChannelForm {
   return {
-    type: channel.type === "slack" ? "slack" : "discord",
+    type: channel.type,
     name: channel.name,
-    webhookUrl: channel.webhookUrl,
+    webhookUrl: channel.webhookUrl ?? "",
+    slackMode: channel.slackMode ?? (channel.slackBotToken ? "bot" : "webhook"),
+    slackBotToken: channel.slackBotToken ?? "",
+    slackChannel: channel.slackChannel ?? "",
+    telegramBotToken: channel.telegramBotToken ?? "",
+    telegramChatId: channel.telegramChatId ?? "",
+    twilioAccountSid: channel.twilioAccountSid ?? "",
+    twilioAuthToken: channel.twilioAuthToken ?? "",
+    twilioFrom: channel.twilioFrom ?? "",
+    twilioTo: channel.twilioTo ?? "",
     downTemplate: channel.downTemplate ?? "",
     upTemplate: channel.upTemplate ?? "",
     discordUsername: channel.discordUsername ?? "",
@@ -446,12 +547,38 @@ function resetPane() {
   error.value = "";
 }
 
+function channelLabel(type: string) {
+  return typeOptions.find((option) => option.value === type)?.label ?? type;
+}
+
+function channelTagType(type: string) {
+  if (type === "discord") return "primary";
+  if (type === "telegram") return "success";
+  if (type === "twilio") return "warning";
+  if (type === "zapier") return "danger";
+  return "info";
+}
+
 function channelPayload() {
   const isDiscord = form.value.type === "discord";
+  const isSlack = form.value.type === "slack";
+  const isSlackBot = isSlack && form.value.slackMode === "bot";
+  const isTelegram = form.value.type === "telegram";
+  const isTwilio = form.value.type === "twilio";
 
   return {
+    type: form.value.type,
     name: form.value.name,
-    webhookUrl: form.value.webhookUrl,
+    webhookUrl: usesWebhookUrl.value ? form.value.webhookUrl : "",
+    slackMode: isSlack ? form.value.slackMode : undefined,
+    slackBotToken: isSlackBot ? form.value.slackBotToken || null : null,
+    slackChannel: isSlackBot ? form.value.slackChannel || null : null,
+    telegramBotToken: isTelegram ? form.value.telegramBotToken || null : null,
+    telegramChatId: isTelegram ? form.value.telegramChatId || null : null,
+    twilioAccountSid: isTwilio ? form.value.twilioAccountSid || null : null,
+    twilioAuthToken: isTwilio ? form.value.twilioAuthToken || null : null,
+    twilioFrom: isTwilio ? form.value.twilioFrom || null : null,
+    twilioTo: isTwilio ? form.value.twilioTo || null : null,
     downTemplate: form.value.downTemplate || null,
     upTemplate: form.value.upTemplate || null,
     discordUsername: isDiscord ? form.value.discordUsername || null : null,
@@ -516,6 +643,14 @@ function hasCustomSettings(ch: Channel) {
     ch.template ||
     ch.downTemplate ||
     ch.upTemplate ||
+    ch.slackBotToken ||
+    ch.slackChannel ||
+    ch.telegramBotToken ||
+    ch.telegramChatId ||
+    ch.twilioAccountSid ||
+    ch.twilioAuthToken ||
+    ch.twilioFrom ||
+    ch.twilioTo ||
     ch.discordUsername ||
     ch.discordAvatarUrl ||
     ch.discordTts ||
