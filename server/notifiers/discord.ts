@@ -3,6 +3,9 @@ import { renderTemplate, type NotificationTemplates } from "./template";
 import type { Notifier, NotifyPayload } from "./types";
 
 type DiscordWebhookConfig = NotificationTemplates & {
+  channelId?: number;
+  channelName?: string;
+  channelType?: string;
   discordContent?: string | null;
   discordUsername?: string | null;
   discordAvatarUrl?: string | null;
@@ -30,6 +33,28 @@ type DiscordWebhookConfig = NotificationTemplates & {
   discordThreadName?: string | null;
   discordAppliedTags?: string | null;
 };
+
+type SafeWebhookMeta = {
+  hasWebhookUrl: boolean;
+  webhookHost: string | null;
+  webhookPathPrefix: string | null;
+};
+
+function getSafeWebhookMeta(webhookUrl: string): SafeWebhookMeta {
+  try {
+    const parsed = new URL(webhookUrl);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const pathPrefixSegments = segments.slice(0, 2);
+    return {
+      hasWebhookUrl: true,
+      webhookHost: parsed.host,
+      webhookPathPrefix:
+        pathPrefixSegments.length > 0 ? `/${pathPrefixSegments.join("/")}` : parsed.pathname,
+    };
+  } catch {
+    return { hasWebhookUrl: Boolean(webhookUrl), webhookHost: null, webhookPathPrefix: null };
+  }
+}
 
 function renderOptional(value: string | null | undefined, payload: NotifyPayload) {
   return value ? renderTemplate(value, payload) : undefined;
@@ -135,19 +160,56 @@ export function buildDiscordPayload(
 export function createDiscordNotifier(
   config: { webhookUrl: string } & DiscordWebhookConfig,
 ): Notifier {
+  const webhookMeta = getSafeWebhookMeta(config.webhookUrl);
+
   return {
     name: "discord",
     async notify(payload: NotifyPayload) {
+      console.info({
+        event: "notification.discord.send.start",
+        monitorId: payload.monitor.id,
+        monitorName: payload.monitor.name,
+        channelId: config.channelId,
+        channelName: config.channelName,
+        channelType: config.channelType,
+        ...webhookMeta,
+      });
+
       const transport = discordTransport({
         webhookUrl: config.webhookUrl,
         username: config.discordUsername ?? undefined,
         avatarUrl: config.discordAvatarUrl ?? undefined,
       });
-      await transport.send(buildDiscordPayload(config, payload), {
-        route: "healthcheck.discord",
-        messageId: crypto.randomUUID(),
-        attempt: 1,
-      });
+
+      try {
+        await transport.send(buildDiscordPayload(config, payload), {
+          route: "healthcheck.discord",
+          messageId: crypto.randomUUID(),
+          attempt: 1,
+        });
+
+        console.info({
+          event: "notification.discord.send.success",
+          monitorId: payload.monitor.id,
+          monitorName: payload.monitor.name,
+          channelId: config.channelId,
+          channelName: config.channelName,
+          channelType: config.channelType,
+          ...webhookMeta,
+        });
+      } catch (error) {
+        console.error({
+          event: "notification.discord.send.failure",
+          monitorId: payload.monitor.id,
+          monitorName: payload.monitor.name,
+          channelId: config.channelId,
+          channelName: config.channelName,
+          channelType: config.channelType,
+          ...webhookMeta,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     },
   };
 }
